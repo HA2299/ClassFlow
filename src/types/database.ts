@@ -136,3 +136,69 @@ export interface Database {
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Class = Database["public"]["Tables"]["classes"]["Row"];
 export type Institution = Database["public"]["Tables"]["institutions"]["Row"];
+
+// Student types
+export type Student = {
+  id: string;
+  class_id: string;
+  institution_id: string;
+  name: string;
+  email?: string;
+  status: "active" | "at_risk" | "inactive";
+  created_at: string;
+  updated_at: string;
+};
+
+// Assignment types
+export type Assignment = {
+  id: string;
+  class_id: string;
+  institution_id: string;
+  name: string;
+  description?: string;
+  due_date: string;
+  difficulty: "easy" | "medium" | "hard";
+  type: "homework" | "quiz" | "project" | "exam";
+  created_at: string;
+  updated_at: string;
+};
+
+// Submission types
+export type Submission = {
+  id: string;
+  assignment_id: string;
+  student_id: string;
+  institution_id: string;
+  answer: string;
+  submitted_at: string;
+  status: "submitted" | "graded" | "late";
+  created_at: string;
+};
+
+// Grade types
+export type Grade = {
+  id: string;
+  submission_id: string;
+  student_id: string;
+  assignment_id: string;
+  institution_id: string;
+  score: number;
+  max_score: number;
+  feedback?: string;
+  graded_at: string;
+  graded_by: string;
+  created_at: string;
+};
+
+// Risk flags
+export type RiskFlag = {
+  id: string;
+  student_id: string;
+  class_id: string;
+  institution_id: string;
+  flag_type: "low_grades" | "missing_submissions" | "no_activity" | "other";
+  severity: "low" | "medium" | "high";
+  description?: string;
+  flagged_at: string;
+  resolved: boolean;
+};

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { Class, Institution, Profile } from "@/types/database";
+import type { Class, Institution, Profile, Student, Grade, Assignment, Submission, RiskFlag } from "@/types/database";
 import {
   clearDemoSession,
   getDemoSessionProfile,
@@ -12,11 +12,21 @@ import {
   addClass,
   addInstitution,
   addProfile,
+  addStudent,
+  addGrade,
+  addAssignment,
+  addSubmission,
+  addRiskFlag,
   countClassesByTeacher,
   findProfileByEmail,
   getClassByIdForTeacher,
   getClassesByTeacher,
   getRecentClassesByTeacher,
+  getStudentsByClass,
+  getStudentById,
+  getGradesByStudent,
+  calculateStudentAverage,
+  getRiskFlagsByStudent,
   setProfilePassword,
   verifyProfilePassword,
 } from "@/lib/demo/store";
@@ -193,4 +203,59 @@ export async function getTeacherClassById(
   teacherId: string
 ): Promise<Class | null> {
   return getClassByIdForTeacher(classId, teacherId) ?? null;
+}
+
+// Student actions
+export async function getClassStudents(classId: string): Promise<Student[]> {
+  return getStudentsByClass(classId);
+}
+
+export async function addStudentToClass(
+  _prevState: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const classId = formData.get("classId") as string;
+  const name = formData.get("name") as string;
+
+  if (!classId || !name) {
+    return { error: "שדה חסר" };
+  }
+
+  const profile = getDemoSessionProfile();
+  if (!profile) {
+    return { error: "נדרשת התחברות" };
+  }
+
+  const classItem = getClassByIdForTeacher(classId, profile.id);
+  if (!classItem) {
+    return { error: "כיתה לא קיימת" };
+  }
+
+  const createdAt = timestamp();
+  addStudent({
+    id: generateId(),
+    class_id: classId,
+    institution_id: profile.institution_id,
+    name: name.trim(),
+    email: undefined,
+    status: "active",
+    created_at: createdAt,
+    updated_at: createdAt,
+  });
+
+  revalidatePath(`/classes/${classId}`);
+  return {};
+}
+
+// Grades actions
+export async function getStudentGrades(studentId: string): Promise<Grade[]> {
+  return getGradesByStudent(studentId);
+}
+
+export async function getStudentAverage(studentId: string): Promise<number> {
+  return calculateStudentAverage(studentId);
+}
+
+export async function getStudentRiskFlags(studentId: string): Promise<RiskFlag[]> {
+  return getRiskFlagsByStudent(studentId);
 }
