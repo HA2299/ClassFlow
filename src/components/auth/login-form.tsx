@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { DEMO_PASSWORD, DEMO_TEACHER_EMAIL } from "@/lib/demo/constants";
 import { useFormState, useFormStatus } from "react-dom";
 import { signIn, type AuthActionState } from "@/app/actions/auth";
+import {
+  DEMO_PASSWORD,
+  DEMO_STUDENT_EMAIL,
+  DEMO_TEACHER_EMAIL,
+} from "@/lib/demo/constants";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,7 +38,8 @@ export function LoginForm() {
       <CardHeader>
         <CardTitle>ClassFlow</CardTitle>
         <CardDescription>
-          מצב דמו — {DEMO_TEACHER_EMAIL} / {DEMO_PASSWORD}
+          מורה: {DEMO_TEACHER_EMAIL} · תלמיד: {DEMO_STUDENT_EMAIL} · סיסמה:{" "}
+          {DEMO_PASSWORD}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -47,6 +52,7 @@ export function LoginForm() {
               type="email"
               required
               autoComplete="email"
+              defaultValue={DEMO_TEACHER_EMAIL}
               dir="ltr"
             />
           </div>
@@ -58,16 +64,20 @@ export function LoginForm() {
               type="password"
               required
               autoComplete="current-password"
+              defaultValue={DEMO_PASSWORD}
               dir="ltr"
             />
           </div>
-          {state?.error && (
-  <p className="text-sm text-destructive">{state.error}</p>
-)}
+          {state.error && (
+            <p className="text-sm text-destructive">{state.error}</p>
+          )}
           <SubmitButton />
           <p className="text-center text-sm text-muted-foreground">
             אין לך חשבון?{" "}
-            <Link href="/signup" className="text-primary underline-offset-4 hover:underline">
+            <Link
+              href="/signup"
+              className="text-primary underline-offset-4 hover:underline"
+            >
               הרשמה
             </Link>
           </p>

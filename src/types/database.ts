@@ -133,7 +133,9 @@ export interface Database {
   };
 }
 
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
+  linked_student_id?: string;
+};
 export type Class = Database["public"]["Tables"]["classes"]["Row"];
 export type Institution = Database["public"]["Tables"]["institutions"]["Row"];
 
@@ -201,4 +203,15 @@ export type RiskFlag = {
   description?: string;
   flagged_at: string;
   resolved: boolean;
+};
+
+export type AIInsight = {
+  id: string;
+  institution_id: string;
+  class_id?: string;
+  student_id?: string;
+  title: string;
+  summary: string;
+  insight_type: "class_summary" | "student_analysis" | "recommendation" | "risk";
+  created_at: string;
 };

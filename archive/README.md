@@ -23,4 +23,6 @@
    NEXT_PUBLIC_SUPABASE_URL=...
    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
    ```
-7. הרץ המיגרציה ב-Supabase SQL Editor
+7. הרץ את המיגרציות ב-SQL Editor (לפי סדר):
+   - `20240614000000_initial_schema.sql`
+   - `20240615000000_phase2_entities.sql`

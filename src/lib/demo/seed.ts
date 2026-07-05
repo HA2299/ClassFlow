@@ -1,9 +1,12 @@
-import type { Class, Institution, Profile, Student, Assignment, Submission, Grade, RiskFlag } from "@/types/database";
+import type { Class, Institution, Profile, Student, Assignment, Submission, Grade, RiskFlag, AIInsight } from "@/types/database";
 import {
   DEMO_CLASS_A_ID,
   DEMO_CLASS_B_ID,
   DEMO_CLASS_C_ID,
   DEMO_INSTITUTION_ID,
+  DEMO_STUDENT_EMAIL,
+  DEMO_STUDENT_PROFILE_ID,
+  DEMO_STUDENT_RECORD_ID,
   DEMO_TEACHER_EMAIL,
   DEMO_TEACHER_ID,
   DEMO_PASSWORD,
@@ -25,6 +28,38 @@ export const seedTeacher: Profile = {
   role: "teacher",
   full_name: "שרה לוי",
   email: DEMO_TEACHER_EMAIL,
+  created_at: twoWeeksAgo,
+  updated_at: now,
+};
+
+export const seedStudentProfile: Profile = {
+  id: DEMO_STUDENT_PROFILE_ID,
+  institution_id: DEMO_INSTITUTION_ID,
+  role: "student",
+  full_name: "אלעד כהן",
+  email: DEMO_STUDENT_EMAIL,
+  linked_student_id: DEMO_STUDENT_RECORD_ID,
+  created_at: weekAgo,
+  updated_at: now,
+};
+
+export const seedParentProfile: Profile = {
+  id: "55555555-5555-5555-5555-555555555555",
+  institution_id: DEMO_INSTITUTION_ID,
+  role: "parent",
+  full_name: "דוד כהן",
+  email: "parent@demo.classflow",
+  linked_student_id: DEMO_STUDENT_RECORD_ID,
+  created_at: weekAgo,
+  updated_at: now,
+};
+
+export const seedAdminProfile: Profile = {
+  id: "66666666-6666-6666-6666-666666666666",
+  institution_id: DEMO_INSTITUTION_ID,
+  role: "institution_admin",
+  full_name: "מנהל מוסד",
+  email: "admin@demo.classflow",
   created_at: twoWeeksAgo,
   updated_at: now,
 };
@@ -187,6 +222,28 @@ export const seedRiskFlags: RiskFlag[] = [
   },
 ];
 
+export const seedAIInsights: AIInsight[] = [
+  {
+    id: "insight-1",
+    institution_id: DEMO_INSTITUTION_ID,
+    class_id: DEMO_CLASS_A_ID,
+    title: "מגמת כיתה",
+    summary: "3 תלמידים לא הגישו את המשימה האחרונה. ממוצע הציונים ירד ב-5% מהשבוע שעבר.",
+    insight_type: "class_summary",
+    created_at: now,
+  },
+  {
+    id: "insight-2",
+    institution_id: DEMO_INSTITUTION_ID,
+    class_id: DEMO_CLASS_A_ID,
+    student_id: "student-4",
+    title: "תלמיד בסיכון",
+    summary: "ליאור גולדשטיין מפספס הגשות וציוניו ירדו. מומלץ ליצור קשר עם ההורים.",
+    insight_type: "risk",
+    created_at: now,
+  },
+];
+
 export interface DemoStore {
   institutions: Institution[];
   profiles: Profile[];
@@ -196,19 +253,31 @@ export interface DemoStore {
   submissions: Submission[];
   grades: Grade[];
   riskFlags: RiskFlag[];
+  aiInsights: AIInsight[];
   passwords: Record<string, string>;
 }
 
 export function createSeedStore(): DemoStore {
   return {
     institutions: [structuredClone(seedInstitution)],
-    profiles: [structuredClone(seedTeacher)],
+    profiles: [
+      structuredClone(seedTeacher),
+      structuredClone(seedStudentProfile),
+      structuredClone(seedParentProfile),
+      structuredClone(seedAdminProfile),
+    ],
     classes: structuredClone(seedClasses),
     students: structuredClone(seedStudents),
     assignments: structuredClone(seedAssignments),
     submissions: structuredClone(seedSubmissions),
     grades: structuredClone(seedGrades),
     riskFlags: structuredClone(seedRiskFlags),
-    passwords: { [DEMO_TEACHER_ID]: DEMO_PASSWORD },
+    aiInsights: structuredClone(seedAIInsights),
+    passwords: {
+      [DEMO_TEACHER_ID]: DEMO_PASSWORD,
+      [DEMO_STUDENT_PROFILE_ID]: DEMO_PASSWORD,
+      [seedParentProfile.id]: DEMO_PASSWORD,
+      [seedAdminProfile.id]: DEMO_PASSWORD,
+    },
   };
 }

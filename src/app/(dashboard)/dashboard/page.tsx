@@ -1,9 +1,7 @@
 import Link from "next/link";
-import {
-  getTeacherClassCount,
-  getTeacherRecentClasses,
-} from "@/app/actions/auth";
-import { requireProfile } from "@/lib/auth/session";
+import { requireTeacher } from "@/lib/auth/session";
+import { getDashboardData } from "@/app/actions/dashboard";
+import { getTeacherRecentClasses } from "@/app/actions/auth";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -12,10 +10,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AtRiskAlert } from "@/components/dashboard/at-risk-alert";
+import { ActiveAssignments } from "@/components/dashboard/active-assignments";
+import { RecentSubmissions } from "@/components/dashboard/recent-submissions";
 
 export default async function DashboardPage() {
-  const profile = await requireProfile();
-  const classCount = await getTeacherClassCount(profile.id);
+  const profile = await requireTeacher();
+  const dashboard = await getDashboardData(profile.id);
   const recentClasses = await getTeacherRecentClasses(profile.id, 5);
 
   return (
@@ -27,34 +28,59 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle>כיתות פעילות</CardTitle>
-            <CardDescription>כיתות שאתה מנהל</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">{classCount}</p>
+            <p className="text-3xl font-semibold">{dashboard.classCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>תלמידים בסיכון</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-semibold text-destructive">
+              {dashboard.atRiskStudents.length}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>משימות פעילות</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-semibold">
+              {dashboard.activeAssignments.length}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>פעולות מהירות</CardTitle>
-            <CardDescription>התחל לעבוד עם ClassFlow</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Link href="/classes/new" className={buttonVariants()}>
+            <Link href="/classes/new" className={buttonVariants({ size: "sm" })}>
               כיתה חדשה
             </Link>
             <Link
-              href="/classes"
-              className={buttonVariants({ variant: "outline" })}
+              href="/assignments"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
             >
-              כל הכיתות
+              משימות
             </Link>
           </CardContent>
         </Card>
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <AtRiskAlert students={dashboard.atRiskStudents} />
+        <ActiveAssignments assignments={dashboard.activeAssignments} />
+      </div>
+
+      <RecentSubmissions submissions={dashboard.recentSubmissions} />
 
       <Card>
         <CardHeader>

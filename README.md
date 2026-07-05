@@ -1,31 +1,39 @@
 # ClassFlow
 
-מערכת AI לניהול למידה — Next.js 14, shadcn/ui.
+מערכת AI לניהול למידה — Next.js 14, shadcn/ui, מצב דemo.
 
-## הרצה (מצב דמו)
+## הרצה
 
 ```bash
 npm install
 npm run dev
 ```
 
-פתח [http://localhost:3000](http://localhost:3000)
+## התחברות דemo
 
-**התחברות דמו:**
-- אימייל: `teacher@demo.classflow`
-- סיסמה: `demo1234`
+| תפקיד | אימייל | סיסמה |
+|--------|--------|--------|
+| מורה | `teacher@demo.classflow` | `demo1234` |
+| תלמיד | `student@demo.classflow` | `demo1234` |
+| הורה | `parent@demo.classflow` | `demo1234` |
+| מנהל | `admin@demo.classflow` | `demo1234` |
 
-3 כיתות מוכנות + הרשמה חדשה עובדת מקומית (נתונים בזיכרון — מתאפסים בהפעלה מחדש של השרת).
+## תכונות
 
-## Supabase (ארכיון)
+- Auth לפי role + redirect
+- כיתות, תלמידים, משימות (CRUD)
+- הגשות + ציון (grading UI)
+- דאשבורד מורה (at-risk, משימות פעילות, הגשות)
+- אשף AI ליצירת משימות (`/classes/[id]/assignments/new/wizard`)
+- עוזר AI לתלמיד (`/student`)
+- אנליטיקה + AI Insights
+- Resend (אופציונלי, `RESEND_API_KEY`)
+- `/parent`, `/admin`
 
-קוד DB + Auth מקורי שמור ב-`archive/` — ראה `archive/README.md` לשחזור.
+## Supabase
 
-## שלב נוכחי
+קוד DB שמור ב-`archive/` — ראה `archive/README.md`.
 
-- [x] מצב דמו — Auth + כיתות
-- [x] ארכיון Supabase Phase 1
+## Data layer
 
-## הבא
-
-Phase 2 — משימות (דמו או Supabase)
+`src/lib/data/` — abstraction לעתיד Supabase (`isDemoMode()`).

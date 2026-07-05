@@ -4,9 +4,12 @@ import {
   getStudentGrades,
   getStudentRiskFlags,
 } from "@/app/actions/auth";
+import { ensureDemoStoreHydrated } from "@/lib/demo/hydrate.server";
 import { getStudentById } from "@/lib/demo/store";
-import { requireProfile } from "@/lib/auth/session";
+import { requireTeacher } from "@/lib/auth/session";
 import { getTeacherClassById } from "@/app/actions/auth";
+import { StudentStatusForm } from "@/components/classes/student-status-form";
+import { GradeChart } from "@/components/analytics/grade-chart";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -21,7 +24,8 @@ export default async function StudentDetailPage({
 }: {
   params: { id: string; studentId: string };
 }) {
-  const profile = await requireProfile();
+  ensureDemoStoreHydrated();
+  const profile = await requireTeacher();
   const classItem = await getTeacherClassById(params.id, profile.id);
 
   if (!classItem) {
@@ -87,6 +91,7 @@ export default async function StudentDetailPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <GradeChart grades={grades} />
               {grades.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   אין ציונים עדיין לתלמיד זה
@@ -158,13 +163,14 @@ export default async function StudentDetailPage({
             <CardHeader>
               <CardTitle className="text-lg">סטטוס</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-3">
+              <StudentStatusForm student={student} classId={params.id} />
               <div>
-                <p className="text-xs text-muted-foreground">מצב בכיתה</p>
+                <p className="text-xs text-muted-foreground">מצב נוכחי</p>
                 <p className="font-medium">
-                  {student.status === "active" && "🟢 פעיל"}
-                  {student.status === "at_risk" && "🔴 בסיכון"}
-                  {student.status === "inactive" && "⚪ לא פעיל"}
+                  {student.status === "active" && "פעיל"}
+                  {student.status === "at_risk" && "בסיכון"}
+                  {student.status === "inactive" && "לא פעיל"}
                 </p>
               </div>
               {riskFlags.length > 0 && (

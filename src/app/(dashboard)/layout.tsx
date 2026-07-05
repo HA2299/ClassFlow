@@ -9,6 +9,12 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const profile = await requireProfile();
+  const isTeacher =
+    profile.role === "teacher" ||
+    profile.role === "institution_admin" ||
+    profile.role === "system_admin";
+  const isStudent = profile.role === "student";
+  const isParent = profile.role === "parent";
 
   return (
     <div className="min-h-screen bg-background">
@@ -16,28 +22,65 @@ export default async function DashboardLayout({
         <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
             <Link
-              href="/dashboard"
+              href={isStudent ? "/student" : isParent ? "/parent" : "/dashboard"}
               className="text-xl font-semibold tracking-tight text-foreground"
             >
               ClassFlow
             </Link>
             <nav className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-              <Link
-                href="/dashboard"
-                className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
-              >
-                דאשבורד
-              </Link>
-              <Link
-                href="/classes"
-                className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
-              >
-                כיתות
-              </Link>
+              {isTeacher && (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                  >
+                    דאשבורד
+                  </Link>
+                  <Link
+                    href="/classes"
+                    className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                  >
+                    כיתות
+                  </Link>
+                  <Link
+                    href="/assignments"
+                    className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                  >
+                    משימות
+                  </Link>
+                </>
+              )}
+              {isStudent && (
+                <Link
+                  href="/student"
+                  className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                >
+                  המשימות שלי
+                </Link>
+              )}
+              {isParent && (
+                <Link
+                  href="/parent"
+                  className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                >
+                  התקדמות הילד
+                </Link>
+              )}
+              {(profile.role === "institution_admin" ||
+                profile.role === "system_admin") && (
+                <Link
+                  href="/admin"
+                  className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                >
+                  ניהול
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-muted-foreground">{profile.full_name}</span>
+            <span className="text-sm text-muted-foreground">
+              {profile.full_name}
+            </span>
             <form action={signOut}>
               <Button type="submit" variant="outline" size="sm">
                 יציאה
@@ -47,7 +90,8 @@ export default async function DashboardLayout({
         </div>
       </header>
       <div className="border-b border-border/70 bg-muted/60 px-4 py-3 text-center text-sm text-muted-foreground">
-        מצב דמו — נתונים מקומיים. Supabase שמור ב-<code className="text-xs">archive/</code>
+        מצב דמו — נתונים מקומיים. Supabase שמור ב{" "}
+        <code className="text-xs">archive/</code>
       </div>
       <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
     </div>

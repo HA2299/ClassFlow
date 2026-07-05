@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getTeacherClassById, getClassStudents } from "@/app/actions/auth";
-import { requireProfile } from "@/lib/auth/session";
+import { getTeacherClassById, getClassStudents, getClassAssignments } from "@/app/actions/auth";
+import { getClassDashboardData } from "@/app/actions/dashboard";
+import { requireTeacher } from "@/lib/auth/session";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -11,13 +12,15 @@ import {
 } from "@/components/ui/card";
 import { StudentsList } from "@/components/classes/students-list";
 import { AddStudentForm } from "@/components/classes/add-student-form";
+import { AssignmentsList } from "@/components/classes/assignments-list";
+import { CreateAssignmentForm } from "@/components/classes/create-assignment-form";
 
 export default async function ClassDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const profile = await requireProfile();
+  const profile = await requireTeacher();
   const classItem = await getTeacherClassById(params.id, profile.id);
 
   if (!classItem) {
@@ -33,6 +36,8 @@ export default async function ClassDetailPage({
 
   const students = await getClassStudents(params.id);
   const atRiskCount = students.filter((s) => s.status === "at_risk").length;
+  const assignments = await getClassAssignments(params.id);
+  const classData = await getClassDashboardData(params.id);
 
   return (
     <div className="space-y-6">
@@ -63,6 +68,19 @@ export default async function ClassDetailPage({
               <StudentsList students={students} classId={params.id} />
             </CardContent>
           </Card>
+
+          {/* Assignments list */}
+          <Card>
+            <CardHeader>
+              <CardTitle>משימות בכיתה</CardTitle>
+              <CardDescription>
+                {assignments.length} משימות
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AssignmentsList assignments={assignments} classId={params.id} />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -77,34 +95,71 @@ export default async function ClassDetailPage({
             </CardContent>
           </Card>
 
-          {/* Quick stats */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">יצירת משימה</CardTitle>
+              <CardDescription>הוסף משימה חדשה לכיתה</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <CreateAssignmentForm classId={params.id} />
+              <Link
+                href={`/classes/${params.id}/assignments/new/wizard`}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                אשף AI
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">סטטוס הגשות</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {classData.stats.assignmentStats.map(({ assignment, submitted, total }) => (
+                <div key={assignment.id} className="flex justify-between text-sm">
+                  <span className="truncate">{assignment.name}</span>
+                  <span className="font-medium">{submitted}/{total}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">AI Insights</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {classData.insights.map((insight) => (
+                <div key={insight.id} className="rounded-lg border p-2 text-sm">
+                  <p className="font-medium">{insight.title}</p>
+                  <p className="text-muted-foreground">{insight.summary}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">סטטיסטיקות</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">
-                  תלמידים בכיתה
-                </span>
-                <span className="font-semibold">{students.length}</span>
+                <span className="text-sm text-muted-foreground">ממוצע ציונים</span>
+                <span className="font-semibold">{classData.analytics.averageGrade}%</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">
-                  תלמידים פעילים
-                </span>
-                <span className="font-semibold">
-                  {students.filter((s) => s.status === "active").length}
-                </span>
+                <span className="text-sm text-muted-foreground">אחוז הגשות</span>
+                <span className="font-semibold">{classData.analytics.submissionRate}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">תלמידים בכיתה</span>
+                <span className="font-semibold">{students.length}</span>
               </div>
               {atRiskCount > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    בסיכון
-                  </span>
-                  <span className="font-semibold text-destructive">
-                    {atRiskCount}
-                  </span>
+                  <span className="text-sm text-muted-foreground">בסיכון</span>
+                  <span className="font-semibold text-destructive">{atRiskCount}</span>
                 </div>
               )}
             </CardContent>
