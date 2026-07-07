@@ -15,11 +15,14 @@ import {
   DEMO_STUDENT_PROFILE_ID,
   DEMO_TEACHER_EMAIL,
   DEMO_TEACHER_ID,
+  DEMO_PARENT_EMAIL,
+  DEMO_PARENT_PROFILE_ID,
 } from "./constants";
 import {
   createSeedStore,
   seedStudentProfile,
   seedTeacher,
+  seedParentProfile,
   type DemoStore,
 } from "./seed";
 
@@ -53,6 +56,7 @@ export function findProfileById(id: string): Profile | undefined {
   if (profile) return profile;
   if (id === DEMO_TEACHER_ID) return structuredClone(seedTeacher);
   if (id === DEMO_STUDENT_PROFILE_ID) return structuredClone(seedStudentProfile);
+  if (id === DEMO_PARENT_PROFILE_ID) return structuredClone(seedParentProfile);
   return undefined;
 }
 
@@ -60,6 +64,7 @@ export function findProfileByEmail(email: string): Profile | undefined {
   const normalized = email.trim().toLowerCase();
   if (normalized === DEMO_TEACHER_EMAIL) return structuredClone(seedTeacher);
   if (normalized === DEMO_STUDENT_EMAIL) return structuredClone(seedStudentProfile);
+  if (normalized === DEMO_PARENT_EMAIL) return structuredClone(seedParentProfile);
   return getStore().profiles.find((profile) => profile.email === normalized);
 }
 
@@ -68,7 +73,9 @@ export function verifyProfilePassword(
   password: string
 ): boolean {
   if (
-    (profileId === DEMO_TEACHER_ID || profileId === DEMO_STUDENT_PROFILE_ID) &&
+    (profileId === DEMO_TEACHER_ID || profileId === DEMO_STUDENT_PROFILE_ID 
+      || profileId === DEMO_PARENT_PROFILE_ID
+    ) &&
     password === DEMO_PASSWORD
   ) {
     return true;

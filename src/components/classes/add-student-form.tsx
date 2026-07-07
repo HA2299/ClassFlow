@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 import { addStudentToClass } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ function SubmitButton() {
 }
 
 export function AddStudentForm({ classId }: AddStudentFormProps) {
-  const [state, formAction] = useState({ error: "" });
+  const [state] = useState({ error: "" });
 
   const handleSubmit = async (formData: FormData) => {
     formData.append("classId", classId);
@@ -47,7 +47,6 @@ export function AddStudentForm({ classId }: AddStudentFormProps) {
           placeholder="הכנס שם"
           required
           disabled={false}
-          size="sm"
         />
       </div>
       {state.error && (

@@ -7,7 +7,6 @@ import { ensureDemoStoreHydrated, saveDemoStore } from "@/lib/demo/hydrate.serve
 import {
   deleteAssignment,
   getActiveAssignmentsForTeacher,
-  getAssignmentById,
   getAssignmentsForTeacher,
   getClassByIdForTeacher,
   updateAssignment,

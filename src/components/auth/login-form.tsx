@@ -38,8 +38,7 @@ export function LoginForm() {
       <CardHeader>
         <CardTitle>ClassFlow</CardTitle>
         <CardDescription>
-          מורה: {DEMO_TEACHER_EMAIL} · תלמיד: {DEMO_STUDENT_EMAIL} · סיסמה:{" "}
-          {DEMO_PASSWORD}
+          מורה: {DEMO_TEACHER_EMAIL} · תלמיד: {DEMO_STUDENT_EMAIL} · הורה: parent@demo.classflow · סיסמה: {DEMO_PASSWORD}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -71,6 +70,9 @@ export function LoginForm() {
           {state.error && (
             <p className="text-sm text-destructive">{state.error}</p>
           )}
+          <p className="text-sm text-muted-foreground">
+            להתחברות כהורה, השתמש באימייל parent@demo.classflow.
+          </p>
           <SubmitButton />
           <p className="text-center text-sm text-muted-foreground">
             אין לך חשבון?{" "}

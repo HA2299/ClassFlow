@@ -60,6 +60,12 @@ export function AiHelper({ studentName }: { studentName: string }) {
             {loading ? "חושב..." : "שאל"}
           </Button>
         </form>
+        {!loading && !error && !answer && (
+          <div className="rounded-lg border border-dashed bg-muted/30 p-3 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">התחל עם שאלה קצרה</p>
+            <p className="mt-1">העוזר יכול לפרק בעיה לשלבים, להסביר דוגמה או להציע דרך פתרון.</p>
+          </div>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
         {answer && (
           <div className="rounded-lg border bg-muted/40 p-3 text-sm leading-relaxed whitespace-pre-wrap">

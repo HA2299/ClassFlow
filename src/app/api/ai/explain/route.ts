@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   if (!apiKey) {
     return NextResponse.json({
-      answer: `【מצב דמו ללא OpenAI】\n\nשאלה: ${body.question}\n\nהסבר לשלבים:\n1. קרא את השאלה בעיון\n2. זהה את הנתונים והנעלם\n3. בחר שיטת פתרון מתאימה\n4. בדוק את התשובה\n\nטיפ: כשתגדיר OPENAI_API_KEY, תקבל הסבר מותאם אישית.`,
+      answer: `【מצב דמו ללא OpenAI】\n\nשאלה: ${body.question.trim()}\n\nהסבר לשלבים:\n1. קרא את השאלה בעיון\n2. זהה את הנתונים והנעלם\n3. בחר שיטת פתרון מתאימה\n4. בדוק את התשובה\n\nטיפ: כשתגדיר OPENAI_API_KEY, תקבל הסבר מותאם אישית.`,
     });
   }
 

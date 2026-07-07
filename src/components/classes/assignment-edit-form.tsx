@@ -46,6 +46,35 @@ export function AssignmentEditForm({
             defaultValue={assignment.description ?? ""}
           />
         </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="difficulty">רמת קושי</Label>
+            <select
+              id="difficulty"
+              name="difficulty"
+              defaultValue={assignment.difficulty}
+              className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm"
+            >
+              <option value="easy">קל</option>
+              <option value="medium">בינוני</option>
+              <option value="hard">קשה</option>
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="type">סוג</Label>
+            <select
+              id="type"
+              name="type"
+              defaultValue={assignment.type}
+              className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm"
+            >
+              <option value="homework">שיעורי בית</option>
+              <option value="quiz">בחינה קטנה</option>
+              <option value="project">פרויקט</option>
+              <option value="exam">בחינה</option>
+            </select>
+          </div>
+        </div>
         <div>
           <Label htmlFor="due_date">תאריך הגשה</Label>
           <Input

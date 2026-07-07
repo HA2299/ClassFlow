@@ -93,8 +93,16 @@
       radial-gradient(circle at 75% 15%, rgba(236,72,153,0.12), transparent 24%);
     color: var(--foreground);
     @apply antialiased;
+    scroll-behavior: smooth;
   }
   html {
     @apply font-sans;
+  }
+  ::selection {
+    background-color: rgba(59, 130, 246, 0.25);
+    color: inherit;
+  }
+  a {
+    @apply transition-colors;
   }
 }

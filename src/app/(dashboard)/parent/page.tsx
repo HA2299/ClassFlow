@@ -31,6 +31,9 @@ export default async function ParentPage() {
   const flags = await getStudentRiskFlags(student.id);
   const assignments = await getClassAssignments(student.class_id);
 
+  const recentFlags = flags.slice(0, 3);
+  const trendText = average >= 85 ? "מגמת ההתקדמות חיובית" : average >= 70 ? "מגמת ההתקדמות יציבה" : "נדרשת תשומת לב נוספת";
+
   return (
     <div className="space-y-6">
       <div>
@@ -71,25 +74,30 @@ export default async function ParentPage() {
         <CardHeader>
           <CardTitle>מגמת ציונים</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">{trendText}</p>
           <GradeChart grades={grades} />
         </CardContent>
       </Card>
 
-      {flags.length > 0 && (
-        <Card className="border-destructive/30">
-          <CardHeader>
-            <CardTitle>התראות</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {flags.map((f) => (
-              <p key={f.id} className="text-sm">
-                {f.description ?? f.flag_type}
-              </p>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      <Card className={flags.length > 0 ? "border-destructive/30" : undefined}>
+        <CardHeader>
+          <CardTitle>התראות אחרונות</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentFlags.length > 0 ? (
+            <ul className="space-y-2 text-sm">
+              {recentFlags.map((f) => (
+                <li key={f.id} className="rounded-lg border px-3 py-2">
+                  {f.description ?? f.flag_type}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">אין התראות כרגע. המצב נראה יציב.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

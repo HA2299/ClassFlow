@@ -44,6 +44,11 @@ export default async function StudentDashboardPage() {
     return Boolean(sub?.answer?.trim());
   }).length;
 
+  const upcomingAssignments = activeAssignments.slice(0, 3);
+  const progressLabel = assignments.length > 0
+    ? `${submittedCount}/${assignments.length} משימות הושלמו`
+    : "אין משימות כרגע";
+
   return (
     <div className="space-y-6">
       <div>
@@ -86,6 +91,29 @@ export default async function StudentDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>התקדמות לימודית</CardTitle>
+          <CardDescription>{progressLabel}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {upcomingAssignments.length > 0 ? (
+            <ul className="space-y-2 text-sm">
+              {upcomingAssignments.map((assignment) => (
+                <li key={assignment.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                  <span>{assignment.name}</span>
+                  <span className="text-muted-foreground">
+                    {new Date(assignment.due_date).toLocaleDateString("he-IL")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">אין משימות קרובות. אפשר להתרכז בלמידה או לבקש עזרה מה-AI.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

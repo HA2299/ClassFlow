@@ -60,7 +60,19 @@ export default async function AssignmentDetailPage({
   const isOverdue = dueDate < now;
   const submittedCount = submissions.filter((item) => item.answer.trim().length > 0).length;
   const gradedCount = submissions.filter((item) => item.status === "graded").length;
-  const averageScore = submissions.length > 0 ? Math.round((submittedCount / students.length) * 100) : 0;
+  const gradedSubmissions = submissions.filter((item) => item.status === "graded");
+  const averageScore = gradedSubmissions.length > 0
+    ? Math.round(
+        gradedSubmissions.reduce((sum, submission) => {
+          const grade = getGradeBySubmission(submission.id);
+          return sum + (grade?.score ?? 0);
+        }, 0) / gradedSubmissions.length
+      )
+    : 0;
+  const submissionRate = students.length > 0 ? Math.round((submittedCount / students.length) * 100) : 0;
+  const completionSummary = students.length > 0
+    ? `${submittedCount}/${students.length} תלמידים הגישו`
+    : "אין תלמידים בכיתה";
 
   const typeLabels = {
     homework: "שיעורי בית",
@@ -229,9 +241,18 @@ export default async function AssignmentDetailPage({
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">
+                  אחוז הגשות
+                </span>
+                <span className="font-semibold">{submissionRate}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">
                   ממוצע ציון
                 </span>
                 <span className="font-semibold">{averageScore}%</span>
+              </div>
+              <div className="rounded-lg border border-border/70 bg-muted/30 p-2 text-xs text-muted-foreground">
+                {completionSummary}
               </div>
             </CardContent>
           </Card>

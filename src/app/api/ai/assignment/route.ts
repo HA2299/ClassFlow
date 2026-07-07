@@ -29,15 +29,19 @@ export async function POST(request: Request) {
     classContext?: string;
   };
 
+  if (!body.idea?.trim()) {
+    return NextResponse.json({ error: "יש להזין רעיון למשימה" }, { status: 400 });
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    const idea = body.idea ?? "משימה לדוגמה";
+    const idea = body.idea.trim();
     return NextResponse.json({
       draft: {
-        name: body.draft?.name ?? `משימה: ${idea.slice(0, 40)}`,
+        name: body.draft?.name?.trim() || `משימה: ${idea.slice(0, 40)}`,
         description:
-          body.draft?.description ??
+          body.draft?.description?.trim() ||
           `【דמו】משימה המבוססת על: ${idea}\n\nפתרו את התרגילים בכתב והגישו עד למועד.`,
         difficulty: body.draft?.difficulty ?? "medium",
         type: body.draft?.type ?? "homework",

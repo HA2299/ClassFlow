@@ -33,17 +33,27 @@ export default async function ClassesPage() {
               <CardHeader>
                 <CardTitle>{classItem.name}</CardTitle>
                 <CardDescription>
-                  נוצרה ב-
-                  {new Date(classItem.created_at).toLocaleDateString("he-IL")}
+                  נוצרה ב-{new Date(classItem.created_at).toLocaleDateString("he-IL")}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Link
-                  href={`/classes/${classItem.id}`}
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
-                >
-                  פתיחה
-                </Link>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  כיתה פעילה עם כל המשימות, התלמידים וההתראות במקום אחד.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/classes/${classItem.id}`}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    פתיחה
+                  </Link>
+                  <Link
+                    href={`/classes/${classItem.id}/assignments/new/wizard`}
+                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                  >
+                    יצירת משימה עם AI
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           ))}

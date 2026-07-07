@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { Student } from "@/types/database";
-import { buttonVariants } from "@/components/ui/button";
 
 interface StudentsListProps {
   students: Student[];

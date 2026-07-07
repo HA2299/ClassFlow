@@ -19,7 +19,7 @@ export function RecentSubmissions({
     <Card>
       <CardHeader>
         <CardTitle>הגשות אחרונות</CardTitle>
-        <CardDescription>7 ימים אחרונים</CardDescription>
+        <CardDescription>עדכונים אחרונים מהכיתות שלך</CardDescription>
       </CardHeader>
       <CardContent>
         {submissions.length > 0 ? (
@@ -27,7 +27,7 @@ export function RecentSubmissions({
             {submissions.slice(0, 8).map((submission) => (
               <li
                 key={submission.id}
-                className="flex items-center justify-between py-3 text-sm"
+                className="flex items-center justify-between gap-3 py-3 text-sm"
               >
                 <div>
                   <p className="font-medium">
@@ -52,7 +52,9 @@ export function RecentSubmissions({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">אין הגשות לאחרונה.</p>
+          <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+            עדיין לא נרשמו הגשות. אפשר להתחיל ביצירת משימה חדשה.
+          </div>
         )}
       </CardContent>
     </Card>

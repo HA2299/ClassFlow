@@ -12,6 +12,8 @@ export const DEMO_SESSION_COOKIE = "classflow_demo_user";
 export const DEMO_ROLE_COOKIE = "classflow_demo_role";
 export const DEMO_PASSWORD = "demo1234";
 export const DEMO_TEACHER_EMAIL = "teacher@demo.classflow";
+export const DEMO_PARENT_EMAIL = "parent@demo.classflow";
+export const DEMO_PARENT_PROFILE_ID = "55555555-5555-5555-5555-555555555555";
 
 export function getHomePathForRole(role: string): string {
   switch (role) {
