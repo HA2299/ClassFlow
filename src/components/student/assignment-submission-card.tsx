@@ -60,7 +60,6 @@ export function AssignmentSubmissionCard({
   const dueDate = new Date(assignment.due_date);
   const isPastDue = dueDate < new Date();
   const status = existingSubmission ? formatStatus(existingSubmission.status) : null;
-  const canSubmit = !isPastDue || Boolean(existingSubmission);
 
   return (
     <form action={handleSubmit} className="rounded-2xl border border-border/70 bg-background/80 p-4 shadow-sm">
@@ -81,9 +80,6 @@ export function AssignmentSubmissionCard({
             תאריך הגשה: {dueDate.toLocaleDateString("he-IL", { dateStyle: "medium" })}
             {isPastDue && " • עבר המועד"}
           </p>
-          {!canSubmit && (
-            <p className="mt-1 text-xs text-amber-600">המשימה כבר לא ניתנת להגשה, אך ניתן לראות את התוכן שלה.</p>
-          )}
         </div>
         <div className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
           {assignment.type === "homework" ? "שיעורי בית" : assignment.type === "quiz" ? "בחינה" : assignment.type === "project" ? "פרויקט" : "מבחן"}
@@ -113,14 +109,7 @@ export function AssignmentSubmissionCard({
             ? "ההגשה הקודמת שלך תתעדכן במקום הקיים"
             : "ההגשה תישמר אוטומטית במצב דמו"}
         </p>
-        <div className="flex items-center gap-2">
-          {!canSubmit && (
-            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-              נעולה
-            </span>
-          )}
-          <SubmitButton existingSubmission={existingSubmission} />
-        </div>
+        <SubmitButton existingSubmission={existingSubmission} />
       </div>
     </form>
   );

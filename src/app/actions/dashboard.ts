@@ -1,7 +1,6 @@
 "use server";
 
 import type { Assignment, Student, Submission } from "@/types/database";
-import { ensureDemoStoreHydrated } from "@/lib/demo/hydrate.server";
 import {
   detectRiskFlagsForTeacher,
   getActiveAssignmentsForTeacher,
@@ -11,11 +10,9 @@ import {
   getAIInsightsForClass,
   getRecentSubmissionsForTeacher,
   getClassesByTeacher,
-} from "@/lib/demo/store";
-
-function hydrate(): void {
-  ensureDemoStoreHydrated();
-}
+  addRiskFlag,
+  riskFlagExists,
+} from "@/lib/data/store";
 
 export async function getDashboardData(teacherId: string): Promise<{
   atRiskStudents: Student[];
@@ -25,35 +22,29 @@ export async function getDashboardData(teacherId: string): Promise<{
   >;
   classCount: number;
 }> {
-  hydrate();
+  const classes = await getClassesByTeacher(teacherId);
   return {
-    atRiskStudents: getAtRiskStudentsForTeacher(teacherId),
-    activeAssignments: getActiveAssignmentsForTeacher(teacherId),
-    recentSubmissions: getRecentSubmissionsForTeacher(teacherId),
-    classCount: getClassesByTeacher(teacherId).length,
+    atRiskStudents: await getAtRiskStudentsForTeacher(teacherId),
+    activeAssignments: await getActiveAssignmentsForTeacher(teacherId),
+    recentSubmissions: await getRecentSubmissionsForTeacher(teacherId),
+    classCount: classes.length,
   };
 }
 
 export async function getClassDashboardData(classId: string) {
-  hydrate();
   return {
-    stats: getClassSubmissionStats(classId),
-    analytics: getClassAnalytics(classId),
-    insights: getAIInsightsForClass(classId),
+    stats: await getClassSubmissionStats(classId),
+    analytics: await getClassAnalytics(classId),
+    insights: await getAIInsightsForClass(classId),
   };
 }
 
 export async function runRiskDetection(teacherId: string) {
-  hydrate();
-  const flags = detectRiskFlagsForTeacher(teacherId);
-  const { saveDemoStore } = await import("@/lib/demo/hydrate.server");
-  const { getStore } = await import("@/lib/demo/store");
-  const store = getStore();
+  const flags = await detectRiskFlagsForTeacher(teacherId);
   for (const flag of flags) {
-    if (!store.riskFlags.some((f) => f.id === flag.id)) {
-      store.riskFlags.push(flag);
+    if (!(await riskFlagExists(flag.id))) {
+      await addRiskFlag(flag);
     }
   }
-  saveDemoStore();
   return flags.length;
 }

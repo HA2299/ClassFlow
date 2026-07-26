@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { ensureDemoStoreHydrated } from "@/lib/demo/hydrate.server";
-import { getAssignmentById, getGradeBySubmission, getStudentById } from "@/lib/demo/store";
-import { requireTeacher } from "@/lib/auth/session";
+import { getAssignmentById, getStudentById } from "@/lib/demo/store";
+import { requireProfile } from "@/lib/auth/session";
 import {
   getAssignmentSubmissions,
   getTeacherClassById,
   getClassStudents,
 } from "@/app/actions/auth";
-import { GradeSubmissionForm } from "@/components/classes/grade-submission-form";
-import { AssignmentEditForm } from "@/components/classes/assignment-edit-form";
-import { buttonVariants } from "@/components/ui/button";import {
+import { buttonVariants } from "@/components/ui/button";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -22,8 +20,7 @@ export default async function AssignmentDetailPage({
 }: {
   params: { id: string; assignmentId: string };
 }) {
-  ensureDemoStoreHydrated();
-  const profile = await requireTeacher();
+  const profile = await requireProfile();
   const classItem = await getTeacherClassById(params.id, profile.id);
 
   if (!classItem) {
@@ -60,19 +57,7 @@ export default async function AssignmentDetailPage({
   const isOverdue = dueDate < now;
   const submittedCount = submissions.filter((item) => item.answer.trim().length > 0).length;
   const gradedCount = submissions.filter((item) => item.status === "graded").length;
-  const gradedSubmissions = submissions.filter((item) => item.status === "graded");
-  const averageScore = gradedSubmissions.length > 0
-    ? Math.round(
-        gradedSubmissions.reduce((sum, submission) => {
-          const grade = getGradeBySubmission(submission.id);
-          return sum + (grade?.score ?? 0);
-        }, 0) / gradedSubmissions.length
-      )
-    : 0;
-  const submissionRate = students.length > 0 ? Math.round((submittedCount / students.length) * 100) : 0;
-  const completionSummary = students.length > 0
-    ? `${submittedCount}/${students.length} תלמידים הגישו`
-    : "אין תלמידים בכיתה";
+  const averageScore = submissions.length > 0 ? Math.round((submittedCount / students.length) * 100) : 0;
 
   const typeLabels = {
     homework: "שיעורי בית",
@@ -135,7 +120,6 @@ export default async function AssignmentDetailPage({
               {submissions.length > 0 ? (
                 submissions.map((submission) => {
                   const student = getStudentById(submission.student_id);
-                  const grade = getGradeBySubmission(submission.id);
                   return (
                     <div key={submission.id} className="rounded-2xl border border-border/70 bg-muted/30 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -146,21 +130,12 @@ export default async function AssignmentDetailPage({
                           </p>
                         </div>
                         <span className="rounded-full bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                          {submission.status === "graded" ? `מדורג ${grade?.score ?? ""}` : submission.status === "late" ? "באיחור" : "הוגש"}
+                          {submission.status === "graded" ? "מדורג" : submission.status === "late" ? "באיחור" : "הוגש"}
                         </span>
                       </div>
                       <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                         {submission.answer || "לא נכתבה תשובה"}
                       </p>
-                      {submission.answer?.trim() && (
-                        <GradeSubmissionForm
-                          submissionId={submission.id}
-                          assignmentId={params.assignmentId}
-                          classId={params.id}
-                          defaultScore={grade?.score}
-                          defaultFeedback={grade?.feedback}
-                        />
-                      )}
                     </div>
                   );
                 })
@@ -215,15 +190,6 @@ export default async function AssignmentDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">עריכת משימה</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AssignmentEditForm assignment={assignment} classId={params.id} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle className="text-lg">סטטיסטיקות</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -241,18 +207,9 @@ export default async function AssignmentDetailPage({
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">
-                  אחוז הגשות
-                </span>
-                <span className="font-semibold">{submissionRate}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">
                   ממוצע ציון
                 </span>
                 <span className="font-semibold">{averageScore}%</span>
-              </div>
-              <div className="rounded-lg border border-border/70 bg-muted/30 p-2 text-xs text-muted-foreground">
-                {completionSummary}
               </div>
             </CardContent>
           </Card>

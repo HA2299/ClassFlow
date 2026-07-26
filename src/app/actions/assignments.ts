@@ -2,36 +2,31 @@
 
 import { revalidatePath } from "next/cache";
 import type { Assignment } from "@/types/database";
+import { getSessionProfile } from "@/lib/auth/session";
+import { isDemoMode } from "@/lib/config";
 import { getDemoSessionProfile } from "@/lib/demo/session";
-import { ensureDemoStoreHydrated, saveDemoStore } from "@/lib/demo/hydrate.server";
 import {
   deleteAssignment,
   getActiveAssignmentsForTeacher,
   getAssignmentsForTeacher,
   getClassByIdForTeacher,
   updateAssignment,
-} from "@/lib/demo/store";
+} from "@/lib/data/store";
 import type { AuthActionState } from "@/app/actions/auth";
-
-function hydrate(): void {
-  ensureDemoStoreHydrated();
-}
 
 export async function getTeacherAssignmentsSummary(teacherId: string): Promise<{
   total: number;
   active: number;
   assignments: Assignment[];
 }> {
-  hydrate();
-  const assignments = getAssignmentsForTeacher(teacherId);
-  const active = getActiveAssignmentsForTeacher(teacherId);
+  const assignments = await getAssignmentsForTeacher(teacherId);
+  const active = await getActiveAssignmentsForTeacher(teacherId);
   return { total: assignments.length, active: active.length, assignments };
 }
 
 export async function getTeacherActiveAssignments(
   teacherId: string
 ): Promise<Assignment[]> {
-  hydrate();
   return getActiveAssignmentsForTeacher(teacherId);
 }
 
@@ -39,7 +34,6 @@ export async function updateAssignmentAction(
   _prev: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  hydrate();
   const assignmentId = formData.get("assignmentId");
   const classId = formData.get("classId");
   const name = formData.get("name");
@@ -57,16 +51,16 @@ export async function updateAssignmentAction(
     return { error: "נתונים חסרים" };
   }
 
-  const profile = getDemoSessionProfile();
+  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
   if (!profile) return { error: "נדרשת התחברות" };
 
-  const classItem = getClassByIdForTeacher(classId, profile.id);
+  const classItem = await getClassByIdForTeacher(classId, profile.id);
   if (!classItem) return { error: "אין הרשאה" };
 
-  const updated = updateAssignment(assignmentId, {
+  const updated = await updateAssignment(assignmentId, {
     name: name.trim(),
     description:
-      typeof description === "string" ? description.trim() || undefined : undefined,
+      typeof description === "string" ? description.trim() || null : undefined,
     due_date,
     difficulty:
       difficulty === "easy" || difficulty === "medium" || difficulty === "hard"
@@ -83,7 +77,6 @@ export async function updateAssignmentAction(
 
   if (!updated) return { error: "משימה לא נמצאה" };
 
-  saveDemoStore();
   revalidatePath(`/classes/${classId}`);
   return {};
 }
@@ -92,7 +85,6 @@ export async function deleteAssignmentAction(
   _prev: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  hydrate();
   const assignmentId = formData.get("assignmentId");
   const classId = formData.get("classId");
 
@@ -100,18 +92,17 @@ export async function deleteAssignmentAction(
     return { error: "נתונים חסרים" };
   }
 
-  const profile = getDemoSessionProfile();
+  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
   if (!profile) return { error: "נדרשת התחברות" };
 
-  if (!getClassByIdForTeacher(classId, profile.id)) {
+  if (!(await getClassByIdForTeacher(classId, profile.id))) {
     return { error: "אין הרשאה" };
   }
 
-  if (!deleteAssignment(assignmentId)) {
+  if (!(await deleteAssignment(assignmentId))) {
     return { error: "משימה לא נמצאה" };
   }
 
-  saveDemoStore();
   revalidatePath(`/classes/${classId}`);
   revalidatePath("/assignments");
   return {};

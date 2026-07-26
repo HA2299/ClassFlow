@@ -1,13 +1,26 @@
 import { redirect } from "next/navigation";
-import type { Profile } from "@/types/database";
+import type { Profile, UserRole } from "@/types/database";
+import { isDemoMode } from "@/lib/config";
 import { getHomePathForRole } from "@/lib/demo/constants";
 import {
   getDemoSessionProfile,
   getDemoSessionRole,
 } from "@/lib/demo/session";
+import { createClient } from "@/lib/supabase/server";
+import { findProfileById } from "@/lib/data/store";
 
 export async function getSessionProfile(): Promise<Profile | null> {
-  return getDemoSessionProfile();
+  if (isDemoMode()) {
+    return getDemoSessionProfile();
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  return findProfileById(user.id);
 }
 
 export async function requireProfile(): Promise<Profile> {
@@ -67,6 +80,11 @@ export async function requireAdmin(): Promise<Profile> {
   return profile;
 }
 
-export function getSessionRole() {
-  return getDemoSessionRole();
+export async function getSessionRole(): Promise<UserRole | null> {
+  if (isDemoMode()) {
+    return getDemoSessionRole();
+  }
+
+  const profile = await getSessionProfile();
+  return profile?.role ?? null;
 }

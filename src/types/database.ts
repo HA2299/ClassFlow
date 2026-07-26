@@ -5,6 +5,22 @@ export type UserRole =
   | "institution_admin"
   | "system_admin";
 
+export type StudentStatus = "active" | "at_risk" | "inactive";
+export type AssignmentDifficulty = "easy" | "medium" | "hard";
+export type AssignmentType = "homework" | "quiz" | "project" | "exam";
+export type SubmissionStatus = "submitted" | "graded" | "late";
+export type RiskFlagType =
+  | "low_grades"
+  | "missing_submissions"
+  | "no_activity"
+  | "other";
+export type RiskSeverity = "low" | "medium" | "high";
+export type InsightType =
+  | "class_summary"
+  | "student_analysis"
+  | "recommendation"
+  | "risk";
+
 export type Json =
   | string
   | number
@@ -41,6 +57,7 @@ export interface Database {
           role: UserRole;
           full_name: string;
           email: string;
+          linked_student_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -50,6 +67,7 @@ export interface Database {
           role?: UserRole;
           full_name: string;
           email: string;
+          linked_student_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -59,6 +77,7 @@ export interface Database {
           role?: UserRole;
           full_name?: string;
           email?: string;
+          linked_student_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -68,6 +87,13 @@ export interface Database {
             columns: ["institution_id"];
             isOneToOne: false;
             referencedRelation: "institutions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "profiles_linked_student_id_fkey";
+            columns: ["linked_student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
             referencedColumns: ["id"];
           },
         ];
@@ -114,6 +140,222 @@ export interface Database {
           },
         ];
       };
+      students: {
+        Row: {
+          id: string;
+          class_id: string;
+          institution_id: string;
+          name: string;
+          email: string | null;
+          status: StudentStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          institution_id: string;
+          name: string;
+          email?: string | null;
+          status?: StudentStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          class_id?: string;
+          institution_id?: string;
+          name?: string;
+          email?: string | null;
+          status?: StudentStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      assignments: {
+        Row: {
+          id: string;
+          class_id: string;
+          institution_id: string;
+          name: string;
+          description: string | null;
+          due_date: string;
+          difficulty: AssignmentDifficulty;
+          type: AssignmentType;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          institution_id: string;
+          name: string;
+          description?: string | null;
+          due_date: string;
+          difficulty?: AssignmentDifficulty;
+          type?: AssignmentType;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          class_id?: string;
+          institution_id?: string;
+          name?: string;
+          description?: string | null;
+          due_date?: string;
+          difficulty?: AssignmentDifficulty;
+          type?: AssignmentType;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      submissions: {
+        Row: {
+          id: string;
+          assignment_id: string;
+          student_id: string;
+          institution_id: string;
+          answer: string;
+          submitted_at: string | null;
+          status: SubmissionStatus;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          assignment_id: string;
+          student_id: string;
+          institution_id: string;
+          answer?: string;
+          submitted_at?: string | null;
+          status?: SubmissionStatus;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          assignment_id?: string;
+          student_id?: string;
+          institution_id?: string;
+          answer?: string;
+          submitted_at?: string | null;
+          status?: SubmissionStatus;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      grades: {
+        Row: {
+          id: string;
+          submission_id: string;
+          student_id: string;
+          assignment_id: string;
+          institution_id: string;
+          score: number;
+          max_score: number;
+          feedback: string | null;
+          graded_at: string;
+          graded_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          submission_id: string;
+          student_id: string;
+          assignment_id: string;
+          institution_id: string;
+          score: number;
+          max_score?: number;
+          feedback?: string | null;
+          graded_at?: string;
+          graded_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          submission_id?: string;
+          student_id?: string;
+          assignment_id?: string;
+          institution_id?: string;
+          score?: number;
+          max_score?: number;
+          feedback?: string | null;
+          graded_at?: string;
+          graded_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      risk_flags: {
+        Row: {
+          id: string;
+          student_id: string;
+          class_id: string;
+          institution_id: string;
+          flag_type: RiskFlagType;
+          severity: RiskSeverity;
+          description: string | null;
+          flagged_at: string;
+          resolved: boolean;
+        };
+        Insert: {
+          id?: string;
+          student_id: string;
+          class_id: string;
+          institution_id: string;
+          flag_type: RiskFlagType;
+          severity?: RiskSeverity;
+          description?: string | null;
+          flagged_at?: string;
+          resolved?: boolean;
+        };
+        Update: {
+          id?: string;
+          student_id?: string;
+          class_id?: string;
+          institution_id?: string;
+          flag_type?: RiskFlagType;
+          severity?: RiskSeverity;
+          description?: string | null;
+          flagged_at?: string;
+          resolved?: boolean;
+        };
+        Relationships: [];
+      };
+      ai_insights: {
+        Row: {
+          id: string;
+          institution_id: string;
+          class_id: string | null;
+          student_id: string | null;
+          title: string;
+          summary: string;
+          insight_type: InsightType;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          institution_id: string;
+          class_id?: string | null;
+          student_id?: string | null;
+          title: string;
+          summary: string;
+          insight_type: InsightType;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          institution_id?: string;
+          class_id?: string | null;
+          student_id?: string | null;
+          title?: string;
+          summary?: string;
+          insight_type?: InsightType;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -126,6 +368,13 @@ export interface Database {
     };
     Enums: {
       user_role: UserRole;
+      student_status: StudentStatus;
+      assignment_difficulty: AssignmentDifficulty;
+      assignment_type: AssignmentType;
+      submission_status: SubmissionStatus;
+      risk_flag_type: RiskFlagType;
+      risk_severity: RiskSeverity;
+      insight_type: InsightType;
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -134,84 +383,13 @@ export interface Database {
 }
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
-  linked_student_id?: string;
+  linked_student_id?: string | null;
 };
 export type Class = Database["public"]["Tables"]["classes"]["Row"];
 export type Institution = Database["public"]["Tables"]["institutions"]["Row"];
-
-// Student types
-export type Student = {
-  id: string;
-  class_id: string;
-  institution_id: string;
-  name: string;
-  email?: string;
-  status: "active" | "at_risk" | "inactive";
-  created_at: string;
-  updated_at: string;
-};
-
-// Assignment types
-export type Assignment = {
-  id: string;
-  class_id: string;
-  institution_id: string;
-  name: string;
-  description?: string;
-  due_date: string;
-  difficulty: "easy" | "medium" | "hard";
-  type: "homework" | "quiz" | "project" | "exam";
-  created_at: string;
-  updated_at: string;
-};
-
-// Submission types
-export type Submission = {
-  id: string;
-  assignment_id: string;
-  student_id: string;
-  institution_id: string;
-  answer: string;
-  submitted_at: string;
-  status: "submitted" | "graded" | "late";
-  created_at: string;
-};
-
-// Grade types
-export type Grade = {
-  id: string;
-  submission_id: string;
-  student_id: string;
-  assignment_id: string;
-  institution_id: string;
-  score: number;
-  max_score: number;
-  feedback?: string;
-  graded_at: string;
-  graded_by: string;
-  created_at: string;
-};
-
-// Risk flags
-export type RiskFlag = {
-  id: string;
-  student_id: string;
-  class_id: string;
-  institution_id: string;
-  flag_type: "low_grades" | "missing_submissions" | "no_activity" | "other";
-  severity: "low" | "medium" | "high";
-  description?: string;
-  flagged_at: string;
-  resolved: boolean;
-};
-
-export type AIInsight = {
-  id: string;
-  institution_id: string;
-  class_id?: string;
-  student_id?: string;
-  title: string;
-  summary: string;
-  insight_type: "class_summary" | "student_analysis" | "recommendation" | "risk";
-  created_at: string;
-};
+export type Student = Database["public"]["Tables"]["students"]["Row"];
+export type Assignment = Database["public"]["Tables"]["assignments"]["Row"];
+export type Submission = Database["public"]["Tables"]["submissions"]["Row"];
+export type Grade = Database["public"]["Tables"]["grades"]["Row"];
+export type RiskFlag = Database["public"]["Tables"]["risk_flags"]["Row"];
+export type AIInsight = Database["public"]["Tables"]["ai_insights"]["Row"];

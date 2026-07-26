@@ -3,23 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Class, Institution, Profile, Student, Grade, Assignment, Submission, RiskFlag } from "@/types/database";
+import { isDemoMode } from "@/lib/config";
 import {
   clearDemoSession,
   getDemoSessionProfile,
   setDemoSession,
 } from "@/lib/demo/session";
-import { getHomePathForRole } from "@/lib/demo/constants";
-import {
-  ensureDemoStoreHydrated,
-  saveDemoStore,
-} from "@/lib/demo/hydrate.server";
+import { getSessionProfile } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
 import {
   addClass,
   addInstitution,
   addProfile,
   addStudent,
   addAssignment,
-  addSubmission,
   countClassesByTeacher,
   findProfileByEmail,
   getClassByIdForTeacher,
@@ -27,7 +24,6 @@ import {
   getRecentClassesByTeacher,
   getStudentsByClass,
   getStudentById,
-  getStudentForProfile,
   getGradesByStudent,
   calculateStudentAverage,
   getRiskFlagsByStudent,
@@ -37,7 +33,8 @@ import {
   getSubmissionByStudentAndAssignment,
   setProfilePassword,
   verifyProfilePassword,
-} from "@/lib/demo/store";
+  upsertSubmission,
+} from "@/lib/data/store";
 
 export type AuthActionState = {
   error?: string;
@@ -51,17 +48,10 @@ function timestamp(): string {
   return new Date().toISOString();
 }
 
-function withHydratedStore<T>(fn: () => T): T {
-  ensureDemoStoreHydrated();
-  return fn();
-}
-
 export async function signUp(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  withHydratedStore(() => undefined);
-
   const fullName = formData.get("fullName");
   const institutionName = formData.get("institutionName");
   const email = formData.get("email");
@@ -88,35 +78,78 @@ export async function signUp(
     return { error: "הסיסמה חייבת להכיל לפחות 8 תווים" };
   }
 
-  if (findProfileByEmail(trimmedEmail)) {
+  if (await findProfileByEmail(trimmedEmail)) {
     return { error: "אימייל כבר רשום במערכת" };
   }
 
-  const institutionId = generateId();
-  const profileId = generateId();
+  if (isDemoMode()) {
+    const institutionId = generateId();
+    const profileId = generateId();
+    const createdAt = timestamp();
+
+    const institution: Institution = {
+      id: institutionId,
+      name: trimmedInstitution,
+      created_at: createdAt,
+    };
+
+    const profile: Profile = {
+      id: profileId,
+      institution_id: institutionId,
+      role: "teacher",
+      full_name: trimmedFullName,
+      email: trimmedEmail,
+      linked_student_id: null,
+      created_at: createdAt,
+      updated_at: createdAt,
+    };
+
+    await addInstitution(institution);
+    await addProfile(profile);
+    setProfilePassword(profileId, password);
+    setDemoSession(profileId, "teacher");
+
+    revalidatePath("/dashboard");
+    redirect("/dashboard");
+  }
+
+  const supabase = createClient();
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: trimmedEmail,
+    password,
+    options: {
+      data: { full_name: trimmedFullName },
+    },
+  });
+
+  if (authError || !authData.user) {
+    return { error: authError?.message ?? "שגיאה בהרשמה" };
+  }
+
+  const { data: institution, error: institutionError } = await supabase
+    .from("institutions")
+    .insert({ name: trimmedInstitution })
+    .select("id, name, created_at")
+    .single();
+
+  if (institutionError || !institution) {
+    return { error: "שגיאה ביצירת מוסד" };
+  }
+
   const createdAt = timestamp();
-
-  const institution: Institution = {
-    id: institutionId,
-    name: trimmedInstitution,
-    created_at: createdAt,
-  };
-
-  const profile: Profile = {
-    id: profileId,
-    institution_id: institutionId,
+  const { error: profileError } = await supabase.from("profiles").insert({
+    id: authData.user.id,
+    institution_id: institution.id,
     role: "teacher",
     full_name: trimmedFullName,
     email: trimmedEmail,
     created_at: createdAt,
     updated_at: createdAt,
-  };
+  });
 
-  addInstitution(institution);
-  addProfile(profile);
-  setProfilePassword(profileId, password);
-  setDemoSession(profileId, "teacher");
-  saveDemoStore();
+  if (profileError) {
+    return { error: "שגיאה ביצירת פרופיל" };
+  }
 
   revalidatePath("/dashboard");
   redirect("/dashboard");
@@ -126,8 +159,6 @@ export async function signIn(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  withHydratedStore(() => undefined);
-
   const email = formData.get("email");
   const password = formData.get("password");
 
@@ -141,20 +172,41 @@ export async function signIn(
     return { error: "אימייל וסיסמה נדרשים" };
   }
 
-  const profile = findProfileByEmail(trimmedEmail);
+  if (isDemoMode()) {
+    const profile = await findProfileByEmail(trimmedEmail);
 
-  if (!profile || !verifyProfilePassword(profile.id, password)) {
+    if (!profile || !verifyProfilePassword(profile.id, password)) {
+      return { error: "אימייל או סיסמה שגויים" };
+    }
+
+    setDemoSession(profile.id, profile.role);
+
+    revalidatePath("/dashboard");
+    redirect("/dashboard");
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: trimmedEmail,
+    password,
+  });
+
+  if (error) {
     return { error: "אימייל או סיסמה שגויים" };
   }
 
-  setDemoSession(profile.id, profile.role);
-
   revalidatePath("/dashboard");
-  redirect(getHomePathForRole(profile.role));
+  redirect("/dashboard");
 }
 
 export async function signOut() {
-  clearDemoSession();
+  if (isDemoMode()) {
+    clearDemoSession();
+  } else {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+  }
+
   revalidatePath("/", "layout");
   redirect("/login");
 }
@@ -163,8 +215,6 @@ export async function createClass(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  withHydratedStore(() => undefined);
-
   const name = formData.get("name");
 
   if (typeof name !== "string") {
@@ -177,7 +227,7 @@ export async function createClass(
     return { error: "שם כיתה נדרש" };
   }
 
-  const profile = getDemoSessionProfile();
+  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
 
   if (!profile) {
     return { error: "נדרשת התחברות" };
@@ -189,7 +239,7 @@ export async function createClass(
 
   const createdAt = timestamp();
 
-  addClass({
+  await addClass({
     id: generateId(),
     name: trimmedName,
     institution_id: profile.institution_id,
@@ -197,7 +247,6 @@ export async function createClass(
     created_at: createdAt,
     updated_at: createdAt,
   });
-  saveDemoStore();
 
   revalidatePath("/classes");
   revalidatePath("/dashboard");
@@ -205,40 +254,35 @@ export async function createClass(
 }
 
 export async function getTeacherClassCount(teacherId: string): Promise<number> {
-  return withHydratedStore(() => countClassesByTeacher(teacherId));
+  return countClassesByTeacher(teacherId);
 }
 
 export async function getTeacherRecentClasses(
   teacherId: string,
   limit: number
 ): Promise<Class[]> {
-  return withHydratedStore(() => getRecentClassesByTeacher(teacherId, limit));
+  return getRecentClassesByTeacher(teacherId, limit);
 }
 
 export async function getTeacherClasses(teacherId: string): Promise<Class[]> {
-  return withHydratedStore(() => getClassesByTeacher(teacherId));
+  return getClassesByTeacher(teacherId);
 }
 
 export async function getTeacherClassById(
   classId: string,
   teacherId: string
 ): Promise<Class | null> {
-  return withHydratedStore(
-    () => getClassByIdForTeacher(classId, teacherId) ?? null
-  );
+  return getClassByIdForTeacher(classId, teacherId);
 }
 
-// Student actions
 export async function getClassStudents(classId: string): Promise<Student[]> {
-  return withHydratedStore(() => getStudentsByClass(classId));
+  return getStudentsByClass(classId);
 }
 
 export async function addStudentToClass(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  withHydratedStore(() => undefined);
-
   const classId = formData.get("classId") as string;
   const name = formData.get("name") as string;
 
@@ -246,57 +290,53 @@ export async function addStudentToClass(
     return { error: "שדה חסר" };
   }
 
-  const profile = getDemoSessionProfile();
+  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
+
   if (!profile) {
     return { error: "נדרשת התחברות" };
   }
 
-  const classItem = getClassByIdForTeacher(classId, profile.id);
+  const classItem = await getClassByIdForTeacher(classId, profile.id);
   if (!classItem) {
     return { error: "כיתה לא קיימת" };
   }
 
   const createdAt = timestamp();
-  addStudent({
+  await addStudent({
     id: generateId(),
     class_id: classId,
     institution_id: profile.institution_id,
     name: name.trim(),
-    email: undefined,
+    email: null,
     status: "active",
     created_at: createdAt,
     updated_at: createdAt,
   });
-  saveDemoStore();
 
   revalidatePath(`/classes/${classId}`);
   return {};
 }
 
-// Grades actions
 export async function getStudentGrades(studentId: string): Promise<Grade[]> {
-  return withHydratedStore(() => getGradesByStudent(studentId));
+  return getGradesByStudent(studentId);
 }
 
 export async function getStudentAverage(studentId: string): Promise<number> {
-  return withHydratedStore(() => calculateStudentAverage(studentId));
+  return calculateStudentAverage(studentId);
 }
 
 export async function getStudentRiskFlags(studentId: string): Promise<RiskFlag[]> {
-  return withHydratedStore(() => getRiskFlagsByStudent(studentId));
+  return getRiskFlagsByStudent(studentId);
 }
 
-// Assignment actions
 export async function getClassAssignments(classId: string): Promise<Assignment[]> {
-  return withHydratedStore(() => getAssignmentsByClass(classId));
+  return getAssignmentsByClass(classId);
 }
 
 export async function createAssignment(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  withHydratedStore(() => undefined);
-
   const classId = formData.get("classId") as string;
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
@@ -308,30 +348,30 @@ export async function createAssignment(
     return { error: "חובה: שם משימה ותאריך הגשה" };
   }
 
-  const profile = getDemoSessionProfile();
+  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
+
   if (!profile) {
     return { error: "נדרשת התחברות" };
   }
 
-  const classItem = getClassByIdForTeacher(classId, profile.id);
+  const classItem = await getClassByIdForTeacher(classId, profile.id);
   if (!classItem) {
     return { error: "כיתה לא קיימת" };
   }
 
   const createdAt = timestamp();
-  addAssignment({
+  await addAssignment({
     id: generateId(),
     class_id: classId,
     institution_id: profile.institution_id,
     name: name.trim(),
-    description: description?.trim() || undefined,
+    description: description?.trim() || null,
     due_date,
     difficulty: difficulty || "medium",
     type: type || "homework",
     created_at: createdAt,
     updated_at: createdAt,
   });
-  saveDemoStore();
 
   revalidatePath(`/classes/${classId}`);
   return {};
@@ -341,8 +381,6 @@ export async function submitAssignmentSolution(
   _prevState: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  withHydratedStore(() => undefined);
-
   const assignmentId = formData.get("assignmentId") as string;
   const studentId = formData.get("studentId") as string;
   const answer = formData.get("answer") as string;
@@ -351,57 +389,48 @@ export async function submitAssignmentSolution(
     return { error: "הנתונים שהוזנו אינם תקינים" };
   }
 
-  const profile = getDemoSessionProfile();
+  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
+
   if (!profile) {
     return { error: "נדרשת התחברות" };
   }
 
-  let student = getStudentById(studentId);
-  if (profile.role === "student") {
-    const linked = getStudentForProfile(profile);
-    if (!linked || linked.id !== studentId) {
-      return { error: "אין הרשאה להגיש משימה זו" };
-    }
-    student = linked;
-  }
-
-  const assignment = getAssignmentById(assignmentId);
+  const assignment = await getAssignmentById(assignmentId);
   if (!assignment) {
     return { error: "המשימה לא נמצאה" };
   }
 
+  const student = await getStudentById(studentId);
   if (!student || student.class_id !== assignment.class_id) {
     return { error: "לא ניתן להגיש משימה לתלמיד זה" };
   }
 
-  const existingSubmission = getSubmissionByStudentAndAssignment(studentId, assignmentId);
+  const existingSubmission = await getSubmissionByStudentAndAssignment(
+    studentId,
+    assignmentId
+  );
   const submittedAt = new Date().toISOString();
-  const finalStatus = new Date(assignment.due_date) < new Date() ? "late" : "submitted";
+  const finalStatus =
+    new Date(assignment.due_date) < new Date() ? "late" : "submitted";
 
-  if (existingSubmission) {
-    existingSubmission.answer = answer.trim();
-    existingSubmission.submitted_at = submittedAt;
-    existingSubmission.status = finalStatus;
-    existingSubmission.created_at = submittedAt;
-  } else {
-    addSubmission({
-      id: generateId(),
-      assignment_id: assignmentId,
-      student_id: studentId,
-      institution_id: profile.institution_id,
-      answer: answer.trim(),
-      submitted_at: submittedAt,
-      status: finalStatus,
-      created_at: submittedAt,
-    });
-  }
-  saveDemoStore();
+  await upsertSubmission({
+    id: existingSubmission?.id ?? generateId(),
+    assignment_id: assignmentId,
+    student_id: studentId,
+    institution_id: profile.institution_id,
+    answer: answer.trim(),
+    submitted_at: submittedAt,
+    status: finalStatus,
+    created_at: submittedAt,
+  });
 
   revalidatePath(`/classes/${assignment.class_id}`);
   revalidatePath(`/classes/${assignment.class_id}/assignments/${assignmentId}`);
   return {};
 }
 
-export async function getAssignmentSubmissions(assignmentId: string): Promise<Submission[]> {
-  return withHydratedStore(() => getSubmissionsByAssignment(assignmentId));
+export async function getAssignmentSubmissions(
+  assignmentId: string
+): Promise<Submission[]> {
+  return getSubmissionsByAssignment(assignmentId);
 }
