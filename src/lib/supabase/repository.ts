@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient ,createAdminClient} from "@/lib/supabase/server";
 import type {
   AIInsight,
   Assignment,
@@ -57,12 +57,91 @@ export async function findProfileByEmail(email: string): Promise<Profile | null>
   return mapProfile(data);
 }
 
+export async function findProfileByIdentityNumber(identityNumber: string): Promise<Profile | null> {
+  const supabase = createClient();
+  const normalizedIdentity = identityNumber.trim().replace(/\D/g, "");
+  if (!normalizedIdentity) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("identity_number", normalizedIdentity)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "PGRST204" && error.message?.includes("identity_number")) {
+      return null;
+    }
+    return null;
+  }
+  if (!data) return null;
+  return mapProfile(data);
+}
+
+export async function findStudentByIdentityNumber(
+  identityNumber: string
+): Promise<Student | null> {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    console.error("Supabase admin client is not configured");
+    return null;
+  }
+
+  const normalizedIdentity = identityNumber
+    .trim()
+    .replace(/\D/g, "");
+
+  if (!normalizedIdentity) {
+    return null;
+  }
+
+  console.log("SEARCHING STUDENT:", {
+    original: identityNumber,
+    normalized: normalizedIdentity,
+  });
+
+  const { data, error } = await supabase
+    .from("students")
+    .select("*")
+    .eq("identity_number", normalizedIdentity)
+    .maybeSingle();
+
+  console.log("STUDENT SEARCH RESULT:", {
+    data,
+    error,
+  });
+
+  if (error) {
+    console.error("Find Student Error:", error);
+    return null;
+  }
+
+  if (!data) {
+    console.log("STUDENT NOT FOUND IN DATABASE");
+    return null;
+  }
+
+  return mapStudent(data);
+}
+
 export async function getClassesByTeacher(teacherId: string): Promise<Class[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("classes")
     .select("*")
     .eq("teacher_id", teacherId)
+    .order("name");
+  if (error || !data) return [];
+  return data.sort((a, b) => a.name.localeCompare(b.name, "he"));
+}
+
+export async function getClassesByInstitution(institutionId: string): Promise<Class[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("classes")
+    .select("*")
+    .eq("institution_id", institutionId)
     .order("name");
   if (error || !data) return [];
   return data.sort((a, b) => a.name.localeCompare(b.name, "he"));
@@ -136,11 +215,13 @@ export async function countClassesByTeacher(teacherId: string): Promise<number> 
 
 export async function getStudentsByClass(classId: string): Promise<Student[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("students")
-    .select("*")
-    .eq("class_id", classId)
-    .order("name");
+  let query = supabase.from("students").select("*");
+
+  if (classId !== "__all__") {
+    query = query.eq("class_id", classId);
+  }
+
+  const { data, error } = await query.order("name");
   if (error || !data) return [];
   return data.map(mapStudent).sort((a, b) => a.name.localeCompare(b.name, "he"));
 }
@@ -158,8 +239,115 @@ export async function getStudentById(studentId: string): Promise<Student | null>
 
 export async function addStudent(student: Student): Promise<boolean> {
   const supabase = createClient();
-  const { error } = await supabase.from("students").insert(student);
-  return !error;
+
+  const { error } = await supabase
+    .from("students")
+    .insert(student);
+
+  if (error) {
+    console.error("Student Creation Error Details:", {
+      error,
+      student,
+    });
+
+    return false;
+  }
+
+  return true;
+}
+
+export async function ensureStudentRecordForProfile(profile: Profile): Promise<Student | null> {
+  const existingProfile = await findProfileById(profile.id);
+  if (!existingProfile) return null;
+
+  if (existingProfile.linked_student_id) {
+    const linkedStudent = await getStudentById(existingProfile.linked_student_id);
+    if (linkedStudent) {
+      return linkedStudent;
+    }
+
+    const supabase = createClient();
+    await supabase
+      .from("profiles")
+      .update({ linked_student_id: null, updated_at: new Date().toISOString() })
+      .eq("id", profile.id);
+  }
+
+  const normalizedIdentity = profile.identity_number?.trim().replace(/\D/g, "") ?? null;
+  const normalizedName = profile.full_name.trim().toLowerCase();
+  const normalizedEmail = profile.email.trim().toLowerCase();
+  const existingStudents = await getStudentsByClass("__all__");
+
+  const matchingStudent = existingStudents.find((student) => {
+    if (student.institution_id !== profile.institution_id) return false;
+
+    const normalizedStudentIdentity = student.identity_number?.trim().replace(/\D/g, "") ?? null;
+    if (normalizedIdentity && normalizedStudentIdentity === normalizedIdentity) {
+      return true;
+    }
+    if (normalizedEmail && student.email && student.email.trim().toLowerCase() === normalizedEmail) {
+      return true;
+    }
+    return student.name.trim().toLowerCase() === normalizedName;
+  });
+
+  if (matchingStudent) {
+    const supabase = createClient();
+    await supabase
+      .from("profiles")
+      .update({
+        linked_student_id: matchingStudent.id,
+        identity_number: existingProfile.identity_number ?? profile.identity_number ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", profile.id);
+    return matchingStudent;
+  }
+
+  const now = new Date().toISOString();
+  let classItem = (await getClassesByInstitution(profile.institution_id))[0] ?? null;
+  if (!classItem) {
+    const newClass: Class = {
+      id: crypto.randomUUID(),
+      institution_id: profile.institution_id,
+      name: "כיתה ראשית",
+      teacher_id: profile.id,
+      created_at: now,
+      updated_at: now,
+    };
+    const created = await addClass(newClass);
+    if (!created) return null;
+    classItem = newClass;
+  }
+
+  const student: Student = {
+    id: crypto.randomUUID(),
+    class_id: classItem.id,
+    institution_id: profile.institution_id,
+    name: profile.full_name,
+    email: profile.email,
+    identity_number: profile.identity_number ?? null,
+    status: "active",
+    created_at: now,
+    updated_at: now,
+  };
+
+  const inserted = await addStudent(student);
+  if (!inserted) return null;
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ linked_student_id: student.id, updated_at: now })
+    .eq("id", profile.id)
+    .select("*")
+    .maybeSingle();
+
+  if (error || !data) {
+    return student;
+  }
+
+  return mapStudent(student);
 }
 
 export async function updateStudent(
@@ -491,7 +679,7 @@ export async function getClassAnalytics(classId: string): Promise<{
       ? Math.round(grades.reduce((s, g) => s + g.score, 0) / grades.length)
       : 0;
 
-  let totalPossible = students.length * assignments.length;
+  const totalPossible = students.length * assignments.length;
   let totalSubmitted = 0;
   for (const assignment of assignments) {
     const submissions = await getSubmissionsByAssignment(assignment.id);
@@ -576,4 +764,44 @@ export async function riskFlagExists(id: string): Promise<boolean> {
     .eq("id", id)
     .maybeSingle();
   return Boolean(data);
+}
+
+export async function getInstitutionStats(institutionId: string): Promise<{
+  classCount: number;
+  studentCount: number;
+  teacherCount: number;
+  assignmentCount: number;
+}> {
+  const supabase = createClient();
+  const [
+    { count: classCount },
+    { count: studentCount },
+    { count: teacherCount },
+    { count: assignmentCount },
+  ] = await Promise.all([
+    supabase
+      .from("classes")
+      .select("*", { count: "exact", head: true })
+      .eq("institution_id", institutionId),
+    supabase
+      .from("students")
+      .select("*", { count: "exact", head: true })
+      .eq("institution_id", institutionId),
+    supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("institution_id", institutionId)
+      .eq("role", "teacher"),
+    supabase
+      .from("assignments")
+      .select("*", { count: "exact", head: true })
+      .eq("institution_id", institutionId),
+  ]);
+
+  return {
+    classCount: classCount ?? 0,
+    studentCount: studentCount ?? 0,
+    teacherCount: teacherCount ?? 0,
+    assignmentCount: assignmentCount ?? 0,
+  };
 }

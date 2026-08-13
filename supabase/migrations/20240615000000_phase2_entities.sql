@@ -14,6 +14,7 @@ create table public.students (
   institution_id uuid not null references public.institutions (id) on delete cascade,
   name text not null check (char_length(name) between 1 and 200),
   email text,
+  identity_number text null check (char_length(identity_number) between 1 and 20),
   status public.student_status not null default 'active',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

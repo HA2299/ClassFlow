@@ -16,25 +16,25 @@ export function RecentSubmissions({
   >;
 }) {
   return (
-    <Card>
+    <Card className="border-0 bg-white/80 shadow-[0_18px_35px_rgba(15,23,42,0.06)] backdrop-blur-xl">
       <CardHeader>
-        <CardTitle>הגשות אחרונות</CardTitle>
+        <CardTitle className="text-xl text-slate-900">הגשות אחרונות</CardTitle>
         <CardDescription>עדכונים אחרונים מהכיתות שלך</CardDescription>
       </CardHeader>
       <CardContent>
         {submissions.length > 0 ? (
-          <ul className="divide-y">
+          <ul className="space-y-3">
             {submissions.slice(0, 8).map((submission) => (
               <li
                 key={submission.id}
-                className="flex items-center justify-between gap-3 py-3 text-sm"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm"
               >
                 <div>
-                  <p className="font-medium">
+                  <p className="font-semibold text-slate-800">
                     {submission.student?.name ?? "תלמיד"} —{" "}
                     {submission.assignment?.name ?? "משימה"}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-500">
                     {new Date(
                       submission.submitted_at || submission.created_at
                     ).toLocaleString("he-IL")}
@@ -43,7 +43,7 @@ export function RecentSubmissions({
                 {submission.assignment && (
                   <Link
                     href={`/classes/${submission.assignment.class_id}/assignments/${submission.assignment_id}`}
-                    className="text-primary hover:underline"
+                    className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700"
                   >
                     צפייה
                   </Link>
@@ -52,7 +52,7 @@ export function RecentSubmissions({
             ))}
           </ul>
         ) : (
-          <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-sm text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
             עדיין לא נרשמו הגשות. אפשר להתחיל ביצירת משימה חדשה.
           </div>
         )}

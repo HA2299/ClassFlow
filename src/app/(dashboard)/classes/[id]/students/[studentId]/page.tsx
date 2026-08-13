@@ -4,8 +4,7 @@ import {
   getStudentGrades,
   getStudentRiskFlags,
 } from "@/app/actions/auth";
-import { ensureDemoStoreHydrated } from "@/lib/demo/hydrate.server";
-import { getStudentById } from "@/lib/demo/store";
+import { getStudentById } from "@/lib/data/store";
 import { requireTeacher } from "@/lib/auth/session";
 import { getTeacherClassById } from "@/app/actions/auth";
 import { StudentStatusForm } from "@/components/classes/student-status-form";
@@ -24,7 +23,6 @@ export default async function StudentDetailPage({
 }: {
   params: { id: string; studentId: string };
 }) {
-  ensureDemoStoreHydrated();
   const profile = await requireTeacher();
   const classItem = await getTeacherClassById(params.id, profile.id);
 
@@ -39,7 +37,7 @@ export default async function StudentDetailPage({
     );
   }
 
-  const student = getStudentById(params.studentId);
+  const student = await getStudentById(params.studentId);
 
   if (!student || student.class_id !== params.id) {
     return (

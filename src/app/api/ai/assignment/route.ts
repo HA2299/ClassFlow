@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { getDemoSessionProfile } from "@/lib/demo/session";
-import { ensureDemoStoreHydrated } from "@/lib/demo/hydrate.server";
+import { getSessionProfile } from "@/lib/auth/session";
 
 type WizardStep = "idea" | "edit" | "finalize";
 
 export async function POST(request: Request) {
-  ensureDemoStoreHydrated();
-  const profile = getDemoSessionProfile();
+  const profile = await getSessionProfile();
 
   if (
     !profile ||
@@ -42,7 +40,7 @@ export async function POST(request: Request) {
         name: body.draft?.name?.trim() || `משימה: ${idea.slice(0, 40)}`,
         description:
           body.draft?.description?.trim() ||
-          `【דמו】משימה המבוססת על: ${idea}\n\nפתרו את התרגילים בכתב והגישו עד למועד.`,
+          `משימה המבוססת על: ${idea}\n\nפתרו את התרגילים בכתב והגישו עד למועד.`,
         difficulty: body.draft?.difficulty ?? "medium",
         type: body.draft?.type ?? "homework",
       },

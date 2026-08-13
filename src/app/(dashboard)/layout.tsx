@@ -17,34 +17,37 @@ export default async function DashboardLayout({
   const isParent = profile.role === "parent";
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border/70 bg-white/80 backdrop-blur-xl shadow-sm">
-        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.12),_transparent_25%),linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] text-slate-900">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/75 backdrop-blur-2xl shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
             <Link
               href={isStudent ? "/student" : isParent ? "/parent" : "/dashboard"}
-              className="text-xl font-semibold tracking-tight text-foreground"
+              className="inline-flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900"
             >
+              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-500 to-cyan-500 text-sm font-black text-white shadow-lg shadow-blue-500/25">
+                C
+              </span>
               ClassFlow
             </Link>
-            <nav className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <nav className="flex flex-wrap gap-2 text-sm text-slate-600">
               {isTeacher && (
                 <>
                   <Link
                     href="/dashboard"
-                    className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                    className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
                   >
                     דאשבורד
                   </Link>
                   <Link
                     href="/classes"
-                    className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                    className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
                   >
                     כיתות
                   </Link>
                   <Link
                     href="/assignments"
-                    className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                    className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
                   >
                     משימות
                   </Link>
@@ -53,7 +56,7 @@ export default async function DashboardLayout({
               {isStudent && (
                 <Link
                   href="/student"
-                  className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                  className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
                 >
                   המשימות שלי
                 </Link>
@@ -61,7 +64,7 @@ export default async function DashboardLayout({
               {isParent && (
                 <Link
                   href="/parent"
-                  className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                  className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
                 >
                   התקדמות הילד
                 </Link>
@@ -70,7 +73,7 @@ export default async function DashboardLayout({
                 profile.role === "system_admin") && (
                 <Link
                   href="/admin"
-                  className="rounded-full px-3 py-2 transition hover:bg-muted hover:text-foreground"
+                  className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
                 >
                   ניהול
                 </Link>
@@ -78,9 +81,9 @@ export default async function DashboardLayout({
             </nav>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-muted-foreground">
+            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
               {profile.full_name}
-            </span>
+            </div>
             <form action={signOut}>
               <Button type="submit" variant="outline" size="sm">
                 יציאה
@@ -89,11 +92,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </header>
-      <div className="border-b border-border/70 bg-muted/60 px-4 py-3 text-center text-sm text-muted-foreground">
-        מצב דמו — נתונים מקומיים. Supabase שמור ב{" "}
-        <code className="text-xs">archive/</code>
-      </div>
-      <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:py-10">{children}</main>
     </div>
   );
 }

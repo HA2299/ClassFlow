@@ -1,7 +1,6 @@
 import { requireAdmin } from "@/lib/auth/session";
 import { runRiskDetectionAction } from "@/app/actions/admin";
-import { ensureDemoStoreHydrated } from "@/lib/demo/hydrate.server";
-import { getStore } from "@/lib/demo/store";
+import { getInstitutionStats } from "@/lib/data/store";
 import {
   Card,
   CardContent,
@@ -11,9 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 
 export default async function AdminPage() {
-  ensureDemoStoreHydrated();
   const profile = await requireAdmin();
-  const store = getStore();
+  const stats = await getInstitutionStats(profile.institution_id);
 
   return (
     <div className="space-y-6">
@@ -28,7 +26,7 @@ export default async function AdminPage() {
             <CardTitle className="text-base">כיתות</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{store.classes.length}</p>
+            <p className="text-2xl font-bold">{stats.classCount}</p>
           </CardContent>
         </Card>
         <Card>
@@ -36,7 +34,7 @@ export default async function AdminPage() {
             <CardTitle className="text-base">תלמידים</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{store.students.length}</p>
+            <p className="text-2xl font-bold">{stats.studentCount}</p>
           </CardContent>
         </Card>
         <Card>
@@ -44,9 +42,7 @@ export default async function AdminPage() {
             <CardTitle className="text-base">מורים</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {store.profiles.filter((p) => p.role === "teacher").length}
-            </p>
+            <p className="text-2xl font-bold">{stats.teacherCount}</p>
           </CardContent>
         </Card>
         <Card>
@@ -54,7 +50,7 @@ export default async function AdminPage() {
             <CardTitle className="text-base">משימות</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{store.assignments.length}</p>
+            <p className="text-2xl font-bold">{stats.assignmentCount}</p>
           </CardContent>
         </Card>
       </div>

@@ -57,6 +57,7 @@ export interface Database {
           role: UserRole;
           full_name: string;
           email: string;
+          identity_number: string | null;
           linked_student_id: string | null;
           created_at: string;
           updated_at: string;
@@ -67,6 +68,7 @@ export interface Database {
           role?: UserRole;
           full_name: string;
           email: string;
+          identity_number?: string | null;
           linked_student_id?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -77,6 +79,7 @@ export interface Database {
           role?: UserRole;
           full_name?: string;
           email?: string;
+          identity_number?: string | null;
           linked_student_id?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -147,6 +150,7 @@ export interface Database {
           institution_id: string;
           name: string;
           email: string | null;
+          identity_number: string | null;
           status: StudentStatus;
           created_at: string;
           updated_at: string;
@@ -157,6 +161,7 @@ export interface Database {
           institution_id: string;
           name: string;
           email?: string | null;
+          identity_number?: string | null;
           status?: StudentStatus;
           created_at?: string;
           updated_at?: string;
@@ -167,6 +172,7 @@ export interface Database {
           institution_id?: string;
           name?: string;
           email?: string | null;
+          identity_number?: string | null;
           status?: StudentStatus;
           created_at?: string;
           updated_at?: string;
@@ -219,6 +225,8 @@ export interface Database {
           student_id: string;
           institution_id: string;
           answer: string;
+          attachment_urls: string[] | null;
+          attachment_names: string[] | null;
           submitted_at: string | null;
           status: SubmissionStatus;
           created_at: string;
@@ -229,6 +237,8 @@ export interface Database {
           student_id: string;
           institution_id: string;
           answer?: string;
+          attachment_urls?: string[] | null;
+          attachment_names?: string[] | null;
           submitted_at?: string | null;
           status?: SubmissionStatus;
           created_at?: string;
@@ -239,6 +249,8 @@ export interface Database {
           student_id?: string;
           institution_id?: string;
           answer?: string;
+          attachment_urls?: string[] | null;
+          attachment_names?: string[] | null;
           submitted_at?: string | null;
           status?: SubmissionStatus;
           created_at?: string;
@@ -364,6 +376,10 @@ export interface Database {
       get_user_institution_id: {
         Args: Record<PropertyKey, never>;
         Returns: string;
+      };
+      complete_teacher_signup: {
+        Args: { institution_name: string };
+        Returns: undefined;
       };
     };
     Enums: {

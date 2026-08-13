@@ -1,6 +1,6 @@
 # ClassFlow
 
-מערכת AI לניהול למידה — Next.js 14, shadcn/ui, מצב דemo.
+מערכת AI לניהול למידה — Next.js 14, shadcn/ui, Supabase.
 
 ## הרצה
 
@@ -9,14 +9,17 @@ npm install
 npm run dev
 ```
 
-## התחברות דemo
+## תצורה
 
-| תפקיד | אימייל | סיסמה |
-|--------|--------|--------|
-| מורה | `teacher@demo.classflow` | `demo1234` |
-| תלמיד | `student@demo.classflow` | `demo1234` |
-| הורה | `parent@demo.classflow` | `demo1234` |
-| מנהל | `admin@demo.classflow` | `demo1234` |
+הגדר משתני סביבה אמיתיים עבור Supabase ו-AI:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+OPENAI_API_KEY=...
+RESEND_API_KEY=...
+```
 
 ## תכונות
 
@@ -32,8 +35,8 @@ npm run dev
 
 ## Supabase
 
-קוד DB שמור ב-`archive/` — ראה `archive/README.md`.
+המסד מתנהל דרך Supabase. קוד DB שמור ב-`archive/` — ראה `archive/README.md`.
 
-## Data layer
+## Storage
 
-`src/lib/data/` — abstraction לעתיד Supabase (`isDemoMode()`).
+ההגשות נשמרות במסד הנתונים האמיתי ולא במצב דמו.

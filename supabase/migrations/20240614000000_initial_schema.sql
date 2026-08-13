@@ -20,6 +20,7 @@ create table public.profiles (
   role public.user_role not null default 'teacher',
   full_name text not null check (char_length(full_name) between 1 and 200),
   email text not null check (char_length(email) between 3 and 320),
+  identity_number text null check (char_length(identity_number) between 1 and 20),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

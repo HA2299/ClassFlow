@@ -49,6 +49,19 @@ export function AddStudentForm({ classId }: AddStudentFormProps) {
           disabled={false}
         />
       </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="identityNumber" className="text-sm">
+          תעודת זהות
+        </Label>
+        <Input
+          id="identityNumber"
+          name="identityNumber"
+          placeholder="הכנס תעודת זהות"
+          required
+          disabled={false}
+          dir="ltr"
+        />
+      </div>
       {state.error && (
         <p className="text-xs text-destructive">{state.error}</p>
       )}

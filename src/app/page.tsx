@@ -1,12 +1,23 @@
 import { redirect } from "next/navigation";
-import { getDemoSessionProfile } from "@/lib/demo/session";
-import { getHomePathForRole } from "@/lib/demo/constants";
+import { getSessionProfile } from "@/lib/auth/session";
 
 export default async function HomePage() {
-  const profile = getDemoSessionProfile();
+  const profile = await getSessionProfile();
 
   if (profile) {
-    redirect(getHomePathForRole(profile.role));
+    if (profile.role === "student") {
+      redirect("/student");
+    }
+
+    if (profile.role === "parent") {
+      redirect("/parent");
+    }
+
+    if (profile.role === "institution_admin" || profile.role === "system_admin") {
+      redirect("/admin");
+    }
+
+    redirect("/dashboard");
   }
 
   redirect("/login");

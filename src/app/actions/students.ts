@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import type { Grade } from "@/types/database";
 import { getSessionProfile } from "@/lib/auth/session";
-import { isDemoMode } from "@/lib/config";
-import { getDemoSessionProfile } from "@/lib/demo/session";
 import {
   deleteStudent,
+  ensureStudentRecordForProfile,
   getAssignmentById,
   getClassByIdForTeacher,
   getGradeBySubmission,
@@ -37,7 +36,7 @@ export async function gradeSubmission(
     return { error: "נתונים חסרים" };
   }
 
-  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
+  const profile = await getSessionProfile();
   if (!profile) return { error: "נדרשת התחברות" };
 
   if (!(await getClassByIdForTeacher(classId, profile.id))) {
@@ -93,7 +92,7 @@ export async function updateStudentStatus(
     return { error: "נתונים לא תקינים" };
   }
 
-  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
+  const profile = await getSessionProfile();
   if (!profile || !(await getClassByIdForTeacher(classId, profile.id))) {
     return { error: "אין הרשאה" };
   }
@@ -121,7 +120,7 @@ export async function updateStudentAction(
     return { error: "נתונים חסרים" };
   }
 
-  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
+  const profile = await getSessionProfile();
   if (!profile || !(await getClassByIdForTeacher(classId, profile.id))) {
     return { error: "אין הרשאה" };
   }
@@ -145,7 +144,7 @@ export async function deleteStudentAction(
     return { error: "נתונים חסרים" };
   }
 
-  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
+  const profile = await getSessionProfile();
   if (!profile || !(await getClassByIdForTeacher(classId, profile.id))) {
     return { error: "אין הרשאה" };
   }
@@ -159,8 +158,9 @@ export async function deleteStudentAction(
 }
 
 export async function getLinkedStudentRecord(profileId: string) {
-  const { findProfileById, getStudentForProfile } = await import("@/lib/data/store");
+  const { findProfileById } = await import("@/lib/data/store");
   const profile = await findProfileById(profileId);
   if (!profile) return null;
-  return getStudentForProfile(profile);
+  if (profile.role !== "student") return null;
+  return ensureStudentRecordForProfile(profile);
 }

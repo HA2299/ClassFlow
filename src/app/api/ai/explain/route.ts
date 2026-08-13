@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { getDemoSessionProfile } from "@/lib/demo/session";
-import { ensureDemoStoreHydrated } from "@/lib/demo/hydrate.server";
+import { getSessionProfile } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
-  ensureDemoStoreHydrated();
-  const profile = getDemoSessionProfile();
+  const profile = await getSessionProfile();
 
   if (!profile || profile.role !== "student") {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
@@ -23,7 +21,7 @@ export async function POST(request: Request) {
 
   if (!apiKey) {
     return NextResponse.json({
-      answer: `【מצב דמו ללא OpenAI】\n\nשאלה: ${body.question.trim()}\n\nהסבר לשלבים:\n1. קרא את השאלה בעיון\n2. זהה את הנתונים והנעלם\n3. בחר שיטת פתרון מתאימה\n4. בדוק את התשובה\n\nטיפ: כשתגדיר OPENAI_API_KEY, תקבל הסבר מותאם אישית.`,
+      answer: `מענה כללי ללא OpenAI\n\nשאלה: ${body.question.trim()}\n\nהסבר לשלבים:\n1. קרא את השאלה בעיון\n2. זהה את הנתונים והנעלם\n3. בחר שיטת פתרון מתאימה\n4. בדוק את התשובה\n\nטיפ: כשתגדיר OPENAI_API_KEY, תקבל הסבר מותאם אישית.`,
     });
   }
 

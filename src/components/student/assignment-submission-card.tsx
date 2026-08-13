@@ -45,9 +45,9 @@ export function AssignmentSubmissionCard({
     formData.append("assignmentId", assignment.id);
     formData.append("studentId", student.id);
 
-    const result = await submitAssignmentSolution({}, formData);
+    const result = (await submitAssignmentSolution({}, formData)) ?? {};
 
-    if (result.error) {
+    if (result?.error) {
       setError(result.error);
       setSuccess("");
       return;
@@ -100,6 +100,43 @@ export function AssignmentSubmissionCard({
         />
       </div>
 
+      <div className="mt-4 space-y-2">
+        <label htmlFor={`attachment-${assignment.id}`} className="text-sm font-medium text-foreground">
+          קבצים מצורפים
+        </label>
+        <input
+          id={`attachment-${assignment.id}`}
+          name="attachment"
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.ppt,.pptx,.zip,.txt"
+          className="block w-full rounded-xl border border-dashed border-input bg-background px-3 py-2 text-sm text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground"
+        />
+        {existingSubmission?.attachment_names && existingSubmission.attachment_names.length > 0 && (
+          <div className="rounded-lg border border-border/70 bg-muted/30 p-2 text-xs text-muted-foreground">
+            <p className="mb-1 font-medium text-foreground">קבצים קיימים:</p>
+            <ul className="space-y-1">
+              {existingSubmission.attachment_names.map((name, index) => (
+                <li key={`${name}-${index}`}>
+                  {existingSubmission.attachment_urls?.[index] ? (
+                    <a
+                      href={existingSubmission.attachment_urls[index]}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary underline underline-offset-2"
+                    >
+                      {name}
+                    </a>
+                  ) : (
+                    name
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
       {error && <p className="mt-3 text-sm text-destructive" aria-live="polite">{error}</p>}
       {success && <p className="mt-3 text-sm text-emerald-600" aria-live="polite">{success}</p>}
 
@@ -107,7 +144,7 @@ export function AssignmentSubmissionCard({
         <p className="text-xs text-muted-foreground">
           {existingSubmission
             ? "ההגשה הקודמת שלך תתעדכן במקום הקיים"
-            : "ההגשה תישמר אוטומטית במצב דמו"}
+            : "ההגשה תישמר אוטומטית במסד הנתונים"}
         </p>
         <SubmitButton existingSubmission={existingSubmission} />
       </div>

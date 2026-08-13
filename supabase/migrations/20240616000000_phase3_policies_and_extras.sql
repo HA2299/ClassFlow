@@ -63,6 +63,12 @@ as $$
 $$;
 
 -- students
+alter table public.profiles
+  add column if not exists identity_number text null check (char_length(identity_number) between 1 and 20);
+
+alter table public.students
+  add column if not exists identity_number text null check (char_length(identity_number) between 1 and 20);
+
 create policy "students_insert_teacher"
   on public.students for insert
   with check (

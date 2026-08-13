@@ -6,8 +6,7 @@ import {
   getStudentRiskFlags,
   getClassAssignments,
 } from "@/app/actions/auth";
-import { ensureDemoStoreHydrated } from "@/lib/demo/hydrate.server";
-import { getClassById } from "@/lib/demo/store";
+import { getClassById } from "@/lib/data/store";
 import {
   Card,
   CardContent,
@@ -17,7 +16,6 @@ import {
 import { GradeChart } from "@/components/analytics/grade-chart";
 
 export default async function ParentPage() {
-  ensureDemoStoreHydrated();
   const profile = await requireParent();
   const student = await getLinkedStudentRecord(profile.id);
 
@@ -25,7 +23,7 @@ export default async function ParentPage() {
     return <p className="text-muted-foreground">לא נמצא מידע על הילד.</p>;
   }
 
-  const classItem = getClassById(student.class_id);
+  const classItem = await getClassById(student.class_id);
   const grades = await getStudentGrades(student.id);
   const average = await getStudentAverage(student.id);
   const flags = await getStudentRiskFlags(student.id);

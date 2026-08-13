@@ -12,7 +12,7 @@ import {
   findProfileById,
 } from "@/lib/data/store";
 
-export async function sendDemoNotifications(teacherId: string): Promise<{
+export async function sendAssignmentNotifications(teacherId: string): Promise<{
   sent: number;
   skipped: boolean;
 }> {

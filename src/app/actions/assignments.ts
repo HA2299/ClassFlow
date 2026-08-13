@@ -3,8 +3,6 @@
 import { revalidatePath } from "next/cache";
 import type { Assignment } from "@/types/database";
 import { getSessionProfile } from "@/lib/auth/session";
-import { isDemoMode } from "@/lib/config";
-import { getDemoSessionProfile } from "@/lib/demo/session";
 import {
   deleteAssignment,
   getActiveAssignmentsForTeacher,
@@ -51,7 +49,7 @@ export async function updateAssignmentAction(
     return { error: "נתונים חסרים" };
   }
 
-  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
+  const profile = await getSessionProfile();
   if (!profile) return { error: "נדרשת התחברות" };
 
   const classItem = await getClassByIdForTeacher(classId, profile.id);
@@ -92,7 +90,7 @@ export async function deleteAssignmentAction(
     return { error: "נתונים חסרים" };
   }
 
-  const profile = isDemoMode() ? getDemoSessionProfile() : await getSessionProfile();
+  const profile = await getSessionProfile();
   if (!profile) return { error: "נדרשת התחברות" };
 
   if (!(await getClassByIdForTeacher(classId, profile.id))) {
