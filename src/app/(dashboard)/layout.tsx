@@ -51,15 +51,35 @@ export default async function DashboardLayout({
                   >
                     משימות
                   </Link>
+                  <Link
+                    href="/teacher/resources"
+                    className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    חומרי עזר
+                  </Link>
                 </>
               )}
               {isStudent && (
-                <Link
-                  href="/student"
-                  className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  המשימות שלי
-                </Link>
+                <>
+                  <Link
+                    href="/student"
+                    className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    דשבורד
+                  </Link>
+                  <Link
+                    href="/student/assignments"
+                    className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    משימות
+                  </Link>
+                  <Link
+                    href="/student/resources"
+                    className="rounded-full px-3 py-2 font-medium transition hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    חומרי עזר
+                  </Link>
+                </>
               )}
               {isParent && (
                 <Link

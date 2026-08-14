@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireStudent } from "@/lib/auth/session";
 import {
   getClassAssignments,
@@ -13,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AssignmentSubmissionCard } from "@/components/student/assignment-submission-card";
+import { buttonVariants } from "@/components/ui/button";
 import { AiHelper } from "@/components/student/ai-helper";
 
 export default async function StudentDashboardPage() {
@@ -21,9 +22,7 @@ export default async function StudentDashboardPage() {
   const student = await getLinkedStudentRecord(profile.id);
 
   if (!student) {
-    return (
-      <p className="text-slate-500">לא נמצא רשומת תלמיד מקושרת.</p>
-    );
+    return <p className="text-slate-500">לא נמצא רשומת תלמיד מקושרת.</p>;
   }
 
   const classItem = await getClassById(student.class_id);
@@ -31,30 +30,24 @@ export default async function StudentDashboardPage() {
   const grades = await getStudentGrades(student.id);
   const average = await getStudentAverage(student.id);
 
-  const activeAssignments = assignments.filter(
+  const sortedAssignments = [...assignments].sort(
+    (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+  );
+
+  const activeAssignments = sortedAssignments.filter(
     (a) => new Date(a.due_date).getTime() >= Date.now()
   );
 
   const submissionChecks = await Promise.all(
-    assignments.map(async (a) => {
+    sortedAssignments.map(async (a) => {
       const subs = await getSubmissionsByAssignment(a.id);
       const sub = subs.find((s) => s.student_id === student.id);
-      return Boolean(sub?.answer?.trim());
+      return Boolean(sub?.answer?.trim() || sub?.attachment_urls?.length);
     })
   );
   const submittedCount = submissionChecks.filter(Boolean).length;
 
-  const submissionsByAssignment = await Promise.all(
-    assignments.map(async (assignment) => {
-      const subs = await getSubmissionsByAssignment(assignment.id);
-      return subs.find((s) => s.student_id === student.id);
-    })
-  );
-
   const upcomingAssignments = activeAssignments.slice(0, 3);
-  const progressLabel = assignments.length > 0
-    ? `${submittedCount}/${assignments.length} משימות הושלמו`
-    : "אין משימות כרגע";
 
   return (
     <div className="space-y-8">
@@ -68,13 +61,18 @@ export default async function StudentDashboardPage() {
               שלום, {profile.full_name}
             </h1>
             <p className="mt-2 text-sm text-blue-100/85 sm:text-base">
-              {classItem?.name ?? "כיתה"} — משימות, ציונים ועזרת AI
+              {classItem?.name ?? "כיתה"} — המעקב והניהול שלך
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-lg">
-            <p className="text-xs text-blue-100/80">ממוצע כללי</p>
-            <p className="text-3xl font-black">{average}%</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/student/assignments" className={buttonVariants({ variant: "secondary", size: "sm" })}>
+              לכל המשימות
+            </Link>
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-lg">
+              <p className="text-xs text-blue-100/80">ממוצע כללי</p>
+              <p className="text-3xl font-black">{average}%</p>
+            </div>
           </div>
         </div>
       </section>
@@ -120,8 +118,8 @@ export default async function StudentDashboardPage() {
 
       <Card className="border-0 bg-white/80 shadow-[0_18px_35px_rgba(15,23,42,0.06)] backdrop-blur-xl">
         <CardHeader>
-          <CardTitle className="text-xl text-slate-900">התקדמות לימודית</CardTitle>
-          <CardDescription>{progressLabel}</CardDescription>
+          <CardTitle className="text-xl text-slate-900">משימות קרובות</CardTitle>
+          <CardDescription>מבט מהיר, בלי להעמיס על הדאשבורד</CardDescription>
         </CardHeader>
         <CardContent>
           {upcomingAssignments.length > 0 ? (
@@ -129,7 +127,7 @@ export default async function StudentDashboardPage() {
               {upcomingAssignments.map((assignment) => (
                 <li
                   key={assignment.id}
-                  className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3"
+                  className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/40"
                 >
                   <div>
                     <p className="font-semibold text-slate-800">{assignment.name}</p>
@@ -151,25 +149,29 @@ export default async function StudentDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
         <Card className="border-0 bg-white/80 shadow-[0_18px_35px_rgba(15,23,42,0.06)] backdrop-blur-xl">
           <CardHeader>
-            <CardTitle className="text-xl text-slate-900">הגשת משימות</CardTitle>
-            <CardDescription>שלח ועדכן פתרונות</CardDescription>
+            <CardTitle className="text-xl text-slate-900">ריכוז מסכם</CardTitle>
+            <CardDescription>תצוגת מצב מהירה ולא עמוסה</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {assignments.length > 0 ? (
-              assignments.map((assignment, index) => (
-                <AssignmentSubmissionCard
-                  key={assignment.id}
-                  assignment={assignment}
-                  student={student}
-                  existingSubmission={submissionsByAssignment[index]}
-                />
-              ))
-            ) : (
-              <p className="text-sm text-slate-500">אין משימות כרגע.</p>
-            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs text-slate-500">משימות פתוחות</p>
+                <p className="mt-2 text-3xl font-black text-slate-900">{activeAssignments.length}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs text-slate-500">הגשות שבוצעו</p>
+                <p className="mt-2 text-3xl font-black text-slate-900">{submittedCount}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-4">
+              <p className="text-xs text-blue-700">המלצה</p>
+              <p className="mt-2 text-sm text-slate-700">
+                אפשר להיכנס לעמוד המשימות לקבלת תצוגה מלאה ומסודרת של כל המשימות לפי תאריך.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

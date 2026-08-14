@@ -5,35 +5,77 @@ type EmailPayload = {
 };
 
 export async function sendEmail(payload: EmailPayload): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM ?? "ClassFlow <onboarding@resend.dev>";
+  try {
+    const apiKey = process.env.BREVO_API_KEY;
+    const fromEmail = process.env.BREVO_FROM_EMAIL;
+    const fromName = process.env.BREVO_FROM_NAME ?? "ClassFlow";
 
-  if (!apiKey) {
-    return false;
-  }
+    if (!apiKey) {
+      console.error("BREVO_API_KEY is not configured.");
+      return false;
+    }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
+    if (!fromEmail) {
+      console.error("BREVO_FROM_EMAIL is not configured.");
+      return false;
+    }
+
+    console.log("Sending email with Brevo:", {
+      from: fromEmail,
       to: payload.to,
       subject: payload.subject,
-      html: payload.html,
-    }),
-  });
+    });
 
-  return res.ok;
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: {
+          name: fromName,
+          email: fromEmail,
+        },
+        to: [
+          {
+            email: payload.to,
+          },
+        ],
+        subject: payload.subject,
+        htmlContent: payload.html,
+      }),
+    });
+
+    const responseText = await res.text();
+
+    if (!res.ok) {
+      console.error("Brevo returned an error:", {
+        status: res.status,
+        statusText: res.statusText,
+        response: responseText,
+      });
+
+      return false;
+    }
+
+    console.log("Email sent successfully with Brevo:", responseText);
+
+    return true;
+  } catch (error) {
+    console.error("Unexpected error while sending email with Brevo:", error);
+
+    return false;
+  }
 }
-
 export function templateNewAssignment(
   studentName: string,
-  assignmentName: string
+  assignmentName: string,
+  dueDate?: string
 ): string {
-  return `<p>שלום ${studentName},</p><p>משימה חדשה: <strong>${assignmentName}</strong></p>`;
+  const dueDateText = dueDate ? ` <br />הגשה עד: <strong>${dueDate}</strong>` : "";
+  return `<p>שלום ${studentName},</p><p>משימה חדשה: <strong>${assignmentName}</strong>${dueDateText}</p>`;
 }
 
 export function templateSubmissionReminder(

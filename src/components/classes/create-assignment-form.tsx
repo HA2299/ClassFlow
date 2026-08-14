@@ -26,14 +26,17 @@ export function CreateAssignmentForm({
   onSuccess,
 }: CreateAssignmentFormProps) {
   const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
 
   const handleSubmit = async (formData: FormData) => {
     formData.append("classId", classId);
     const result = await createAssignment({}, formData);
     if (result.error) {
       setError(result.error);
+      setSuccess("");
     } else {
       setError("");
+      setSuccess(result.success ?? "המשימה נוצרה בהצלחה.");
       const form = document.querySelector("form");
       if (form) form.reset();
       if (onSuccess) onSuccess();
@@ -114,6 +117,7 @@ export function CreateAssignmentForm({
       </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}
+      {success && <p className="text-xs font-medium text-emerald-600">{success}</p>}
       <SubmitButton />
     </form>
   );

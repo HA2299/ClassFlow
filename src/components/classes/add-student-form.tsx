@@ -50,6 +50,19 @@ export function AddStudentForm({ classId }: AddStudentFormProps) {
         />
       </div>
       <div className="space-y-1.5">
+        <Label htmlFor="email" className="text-sm">
+          אימייל (אופציונלי, דרוש לשליחת תזכורות)
+        </Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="student@example.com"
+          disabled={false}
+          dir="ltr"
+        />
+      </div>
+      <div className="space-y-1.5">
         <Label htmlFor="identityNumber" className="text-sm">
           תעודת זהות
         </Label>

@@ -40,6 +40,7 @@ export function AssignmentWizard({
   const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   function updateDraft(patch: Partial<Draft>) {
     setDraft((current) => ({ ...current, ...patch }));
@@ -117,9 +118,12 @@ export function AssignmentWizard({
     const result = await createAssignment({}, fd);
     if (result?.error) {
       setError(result.error);
+      setSuccess("");
       setLoading(false);
       return;
     }
+    setError("");
+    setSuccess(result?.success ?? "המשימה נוצרה בהצלחה.");
     router.push(`/classes/${classId}`);
     router.refresh();
   }
@@ -256,6 +260,7 @@ export function AssignmentWizard({
         )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
+        {success && <p className="text-sm font-medium text-emerald-600">{success}</p>}
       </CardContent>
     </Card>
   );

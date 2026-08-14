@@ -8,6 +8,7 @@ export type UserRole =
 export type StudentStatus = "active" | "at_risk" | "inactive";
 export type AssignmentDifficulty = "easy" | "medium" | "hard";
 export type AssignmentType = "homework" | "quiz" | "project" | "exam";
+export type ResourceType = "summary" | "presentation" | "formula" | "link" | "notes";
 export type SubmissionStatus = "submitted" | "graded" | "late";
 export type RiskFlagType =
   | "low_grades"
@@ -257,6 +258,48 @@ export interface Database {
         };
         Relationships: [];
       };
+      resource_library: {
+        Row: {
+          id: string;
+          institution_id: string;
+          teacher_id: string;
+          class_id: string | null;
+          title: string;
+          description: string;
+          type: ResourceType;
+          tags: string[] | null;
+          url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          institution_id: string;
+          teacher_id: string;
+          class_id?: string | null;
+          title: string;
+          description: string;
+          type?: ResourceType;
+          tags?: string[] | null;
+          url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          institution_id?: string;
+          teacher_id?: string;
+          class_id?: string | null;
+          title?: string;
+          description?: string;
+          type?: ResourceType;
+          tags?: string[] | null;
+          url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       grades: {
         Row: {
           id: string;
@@ -387,6 +430,7 @@ export interface Database {
       student_status: StudentStatus;
       assignment_difficulty: AssignmentDifficulty;
       assignment_type: AssignmentType;
+      resource_type: ResourceType;
       submission_status: SubmissionStatus;
       risk_flag_type: RiskFlagType;
       risk_severity: RiskSeverity;
@@ -405,6 +449,7 @@ export type Class = Database["public"]["Tables"]["classes"]["Row"];
 export type Institution = Database["public"]["Tables"]["institutions"]["Row"];
 export type Student = Database["public"]["Tables"]["students"]["Row"];
 export type Assignment = Database["public"]["Tables"]["assignments"]["Row"];
+export type ResourceLibraryItem = Database["public"]["Tables"]["resource_library"]["Row"];
 export type Submission = Database["public"]["Tables"]["submissions"]["Row"];
 export type Grade = Database["public"]["Tables"]["grades"]["Row"];
 export type RiskFlag = Database["public"]["Tables"]["risk_flags"]["Row"];

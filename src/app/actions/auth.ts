@@ -28,9 +28,13 @@ import {
   getSubmissionByStudentAndAssignment,
   upsertSubmission,
 } from "@/lib/data/store";
+import { sendNewAssignmentEmailsToClass } from "@/app/actions/notifications";
 
 export type AuthActionState = {
   error?: string;
+  success?: string;
+  sent?: number;
+  skipped?: number;
 };
 
 const SUBMISSION_BUCKET_NAME = "submission-files";
@@ -667,6 +671,7 @@ export async function addStudentToClass(
   const classId = formData.get("classId") as string;
   const name = formData.get("name") as string;
   const identityNumberRaw = formData.get("identityNumber");
+  const emailRaw = formData.get("email");
 
   if (!classId || !name || typeof identityNumberRaw !== "string") {
     return { error: "שדה חסר" };
@@ -676,6 +681,8 @@ export async function addStudentToClass(
   if (!identityNumber) {
     return { error: "תעודת זהות תקינה נדרשת" };
   }
+
+  const email = typeof emailRaw === "string" ? emailRaw.trim().toLowerCase() : "";
 
   const profile = await getSessionProfile();
 
@@ -695,7 +702,7 @@ const studentCreated = await addStudent({
   class_id: classId,
   institution_id: profile.institution_id,
   name: name.trim(),
-  email: null,
+  email: email || null,
   identity_number: identityNumber,
   status: "active",
   created_at: createdAt,
@@ -785,8 +792,9 @@ export async function createAssignment(
   }
 
   const createdAt = timestamp();
+  const assignmentId = generateId();
   await addAssignment({
-    id: generateId(),
+    id: assignmentId,
     class_id: classId,
     institution_id: profile.institution_id,
     name: name.trim(),
@@ -798,8 +806,23 @@ export async function createAssignment(
     updated_at: createdAt,
   });
 
+  const emailResult = await sendNewAssignmentEmailsToClass(
+    classId,
+    name.trim(),
+    new Date(due_date).toLocaleDateString("he-IL")
+  );
+
   revalidatePath(`/classes/${classId}`);
-  return {};
+
+  const sentMessage = emailResult.skipped > 0
+    ? `המשימה נוצרה. נשלחו ${emailResult.sent} הודעות, והושמטו ${emailResult.skipped} תלמידים ללא אימייל.`
+    : `המשימה נוצרה. נשלחו ${emailResult.sent} הודעות לתלמידים.`;
+
+  return {
+    success: sentMessage,
+    sent: emailResult.sent,
+    skipped: emailResult.skipped,
+  };
 }
 
 export async function submitAssignmentSolution(

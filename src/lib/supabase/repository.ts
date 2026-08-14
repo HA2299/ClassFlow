@@ -96,29 +96,17 @@ export async function findStudentByIdentityNumber(
     return null;
   }
 
-  console.log("SEARCHING STUDENT:", {
-    original: identityNumber,
-    normalized: normalizedIdentity,
-  });
-
   const { data, error } = await supabase
     .from("students")
     .select("*")
     .eq("identity_number", normalizedIdentity)
     .maybeSingle();
 
-  console.log("STUDENT SEARCH RESULT:", {
-    data,
-    error,
-  });
-
   if (error) {
-    console.error("Find Student Error:", error);
     return null;
   }
 
   if (!data) {
-    console.log("STUDENT NOT FOUND IN DATABASE");
     return null;
   }
 
