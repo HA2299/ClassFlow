@@ -773,8 +773,15 @@ export async function createAssignment(
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const due_date = formData.get("due_date") as string;
-  const difficulty = formData.get("difficulty") as "easy" | "medium" | "hard";
-  const type = formData.get("type") as "homework" | "quiz" | "project" | "exam";
+  const difficulty = formData.get("difficulty") as
+    | "easy"
+    | "medium"
+    | "hard";
+  const type = formData.get("type") as
+    | "homework"
+    | "quiz"
+    | "project"
+    | "exam";
 
   if (!classId || !name || !due_date) {
     return { error: "חובה: שם משימה ותאריך הגשה" };
@@ -786,37 +793,58 @@ export async function createAssignment(
     return { error: "נדרשת התחברות" };
   }
 
-  const classItem = await getClassByIdForTeacher(classId, profile.id);
+  const classItem = await getClassByIdForTeacher(
+    classId,
+    profile.id
+  );
+
   if (!classItem) {
     return { error: "כיתה לא קיימת" };
   }
 
   const createdAt = timestamp();
   const assignmentId = generateId();
+
+  const cleanName = name.trim();
+  const cleanDescription = description?.trim() || "";
+  const selectedDifficulty = difficulty || "medium";
+  const selectedType = type || "homework";
+
   await addAssignment({
     id: assignmentId,
     class_id: classId,
     institution_id: profile.institution_id,
-    name: name.trim(),
-    description: description?.trim() || null,
+    name: cleanName,
+    description: cleanDescription || null,
     due_date,
-    difficulty: difficulty || "medium",
-    type: type || "homework",
+    difficulty: selectedDifficulty,
+    type: selectedType,
     created_at: createdAt,
     updated_at: createdAt,
   });
 
+  // ---------------------------------------------------------
+  // Send email notification to students
+  // ---------------------------------------------------------
+
   const emailResult = await sendNewAssignmentEmailsToClass(
     classId,
-    name.trim(),
-    new Date(due_date).toLocaleDateString("he-IL")
+    assignmentId,
+    cleanName,
+    new Date(due_date).toLocaleDateString("he-IL", {
+      dateStyle: "medium",
+    }),
+    cleanDescription,
+    selectedDifficulty,
+    selectedType
   );
 
   revalidatePath(`/classes/${classId}`);
 
-  const sentMessage = emailResult.skipped > 0
-    ? `המשימה נוצרה. נשלחו ${emailResult.sent} הודעות, והושמטו ${emailResult.skipped} תלמידים ללא אימייל.`
-    : `המשימה נוצרה. נשלחו ${emailResult.sent} הודעות לתלמידים.`;
+  const sentMessage =
+    emailResult.skipped > 0
+      ? `המשימה נוצרה. נשלחו ${emailResult.sent} הודעות, והושמטו ${emailResult.skipped} תלמידים ללא אימייל.`
+      : `המשימה נוצרה. נשלחו ${emailResult.sent} הודעות לתלמידים.`;
 
   return {
     success: sentMessage,

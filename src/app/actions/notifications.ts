@@ -6,22 +6,52 @@ import {
   templateNewAssignment,
   templateSubmissionReminder,
 } from "@/lib/email/resend";
+
 import {
   getActiveAssignmentsForTeacher,
   getAtRiskStudentsForTeacher,
   findProfileById,
   getStudentsByClass,
 } from "@/lib/data/store";
+
 import { createClient } from "@/lib/supabase/server";
 
-export async function sendAssignmentNotifications(teacherId: string): Promise<{
+type AssignmentType = "homework" | "quiz" | "project" | "exam";
+type AssignmentDifficulty = "easy" | "medium" | "hard";
+
+function getSiteUrl(): string {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+  if (configuredSiteUrl) {
+    return configuredSiteUrl.replace(/\/$/, "");
+  }
+
+  const vercelUrl =
+    process.env.NEXT_PUBLIC_VERCEL_URL?.trim() ??
+    process.env.VERCEL_URL?.trim();
+
+  if (vercelUrl) {
+    return `https://${vercelUrl
+      .replace(/^https?:\/\//, "")
+      .replace(/\/$/, "")}`;
+  }
+
+  return "http://localhost:3000";
+}
+
+export async function sendAssignmentNotifications(
+  teacherId: string
+): Promise<{
   sent: number;
   skipped: boolean;
 }> {
   const teacher = await findProfileById(teacherId);
 
   if (!teacher) {
-    return { sent: 0, skipped: true };
+    return {
+      sent: 0,
+      skipped: true,
+    };
   }
 
   let sent = 0;
@@ -36,59 +66,64 @@ export async function sendAssignmentNotifications(teacherId: string): Promise<{
       "ClassFlow email notifications skipped: BREVO_API_KEY or BREVO_FROM_EMAIL is not configured."
     );
 
-    return { sent: 0, skipped: true };
+    return {
+      sent: 0,
+      skipped: true,
+    };
   }
 
   // ---------------------------------------------------------
-  // At-risk notifications to teacher
+  // At-risk notifications
   // ---------------------------------------------------------
 
-  const atRisk = await getAtRiskStudentsForTeacher(teacherId);
+  const atRisk =
+    await getAtRiskStudentsForTeacher(teacherId);
 
   for (const student of atRisk) {
+    if (!teacher.email) continue;
+
     const html = templateAtRiskAlert(
       teacher.full_name,
       student.name
     );
 
-    if (teacher.email) {
-      const ok = await sendEmail({
-        to: teacher.email,
-        subject: `ClassFlow: ${student.name} בסיכון`,
-        html,
-      });
+    const ok = await sendEmail({
+      to: teacher.email,
+      subject: `ClassFlow: ${student.name} בסיכון`,
+      html,
+    });
 
-      if (ok) {
-        sent += 1;
-      }
+    if (ok) {
+      sent += 1;
     }
   }
 
   // ---------------------------------------------------------
-  // Assignment reminders to teacher
+  // Assignment reminders
   // ---------------------------------------------------------
 
-  const assignments = await getActiveAssignmentsForTeacher(teacherId);
+  const assignments =
+    await getActiveAssignmentsForTeacher(teacherId);
 
   for (const assignment of assignments.slice(0, 3)) {
+    if (!teacher.email) continue;
+
     const html = templateSubmissionReminder(
       "תלמיד",
       assignment.name,
-      new Date(assignment.due_date).toLocaleDateString("he-IL")
+      new Date(
+        assignment.due_date
+      ).toLocaleDateString("he-IL")
     );
 
-    if (teacher.email) {
-      const ok = await sendEmail({
-        to: teacher.email,
-        subject: `תזכורת: ${assignment.name}`,
-        html,
-      });
+    const ok = await sendEmail({
+      to: teacher.email,
+      subject: `תזכורת: ${assignment.name}`,
+      html,
+    });
 
-      if (ok) {
-        sent += 1;
-      }
-    } else {
-      void templateNewAssignment("תלמיד", assignment.name);
+    if (ok) {
+      sent += 1;
     }
   }
 
@@ -99,7 +134,7 @@ export async function sendAssignmentNotifications(teacherId: string): Promise<{
 }
 
 // ---------------------------------------------------------
-// Resolve student email
+// Resolve student recipient
 // ---------------------------------------------------------
 
 async function resolveStudentRecipient(student: {
@@ -109,8 +144,8 @@ async function resolveStudentRecipient(student: {
   identity_number?: string | null;
   institution_id: string;
 }) {
-  // First try the email directly stored on the student
-  const directEmail = student.email?.trim().toLowerCase();
+  const directEmail =
+    student.email?.trim().toLowerCase();
 
   if (directEmail) {
     return {
@@ -119,65 +154,76 @@ async function resolveStudentRecipient(student: {
     };
   }
 
-  // If there is no direct email, search the student's profile
   const supabase = createClient();
 
   const identity =
-    student.identity_number?.trim().replace(/\D/g, "") ?? "";
+    student.identity_number
+      ?.trim()
+      .replace(/\D/g, "") ?? "";
 
-  const normalizedName = student.name.trim().toLowerCase();
+  const normalizedName =
+    student.name.trim().toLowerCase();
 
-  const { data: profiles, error } = await supabase
-    .from("profiles")
-    .select(
-      "id, email, full_name, identity_number, linked_student_id"
-    )
-    .eq("institution_id", student.institution_id)
-    .or(
-      identity
-        ? `linked_student_id.eq.${student.id},identity_number.eq.${identity}`
-        : `linked_student_id.eq.${student.id}`
-    );
+  const { data: profiles, error } =
+    await supabase
+      .from("profiles")
+      .select(
+        "id, email, full_name, identity_number, linked_student_id"
+      )
+      .eq(
+        "institution_id",
+        student.institution_id
+      )
+      .or(
+        identity
+          ? `linked_student_id.eq.${student.id},identity_number.eq.${identity}`
+          : `linked_student_id.eq.${student.id}`
+      );
 
   if (error) {
     console.error(
       "Failed to resolve student profile:",
-      {
-        studentId: student.id,
-        error,
-      }
+      error
     );
   }
 
-  if (!error && profiles && profiles.length > 0) {
-    const matchedProfile = profiles.find((profile) => {
-      // Best match: profile is directly linked to the student
-      if (profile.linked_student_id === student.id) {
-        return true;
+  if (!error && profiles?.length) {
+    const matchedProfile = profiles.find(
+      (profile) => {
+        if (
+          profile.linked_student_id ===
+          student.id
+        ) {
+          return true;
+        }
+
+        const profileIdentity =
+          profile.identity_number
+            ?.trim()
+            .replace(/\D/g, "") ?? "";
+
+        if (
+          identity &&
+          profileIdentity &&
+          profileIdentity === identity
+        ) {
+          return true;
+        }
+
+        return Boolean(
+          profile.full_name &&
+            profile.full_name
+              .trim()
+              .toLowerCase() ===
+              normalizedName
+        );
       }
-
-      // Second match: identity number
-      const profileIdentity =
-        profile.identity_number?.trim().replace(/\D/g, "") ?? "";
-
-      if (
-        identity &&
-        profileIdentity &&
-        profileIdentity === identity
-      ) {
-        return true;
-      }
-
-      // Third match: full name
-      return Boolean(
-        profile.full_name &&
-          profile.full_name.trim().toLowerCase() ===
-            normalizedName
-      );
-    });
+    );
 
     const candidateEmail =
-      matchedProfile?.email?.trim().toLowerCase();
+      matchedProfile?.email
+        ?.trim()
+        .toLowerCase();
 
     if (candidateEmail && matchedProfile) {
       return {
@@ -197,31 +243,43 @@ async function resolveStudentRecipient(student: {
 }
 
 // ---------------------------------------------------------
-// Send new assignment emails to all students in a class
+// Send new assignment emails
 // ---------------------------------------------------------
 
 export async function sendNewAssignmentEmailsToClass(
   classId: string,
+  assignmentId: string,
   assignmentName: string,
-  dueDate: string
-): Promise<{ sent: number; skipped: number }> {
-  const students = await getStudentsByClass(classId);
+  dueDate: string,
+  description?: string,
+  difficulty?: "easy" | "medium" | "hard",
+  type?: "homework" | "quiz" | "project" | "exam"
+): Promise<{
+  sent: number;
+  skipped: number;
+}> {
+  const students =
+    await getStudentsByClass(classId);
 
   const hasBrevo = Boolean(
     process.env.BREVO_API_KEY &&
       process.env.BREVO_FROM_EMAIL
   );
 
-  console.log("ClassFlow assignment email process:", {
-    classId,
-    assignmentName,
-    studentsCount: students.length,
-    hasBrevo,
-  });
+  console.log(
+    "ClassFlow assignment email process:",
+    {
+      classId,
+      assignmentId,
+      assignmentName,
+      studentsCount: students.length,
+      hasBrevo,
+    }
+  );
 
   if (!hasBrevo) {
     console.warn(
-      "ClassFlow assignment emails skipped: BREVO_API_KEY or BREVO_FROM_EMAIL is not configured."
+      "ClassFlow assignment emails skipped: Brevo is not configured."
     );
 
     return {
@@ -234,17 +292,12 @@ export async function sendNewAssignmentEmailsToClass(
   let skipped = 0;
 
   for (const student of students) {
-    const recipient = await resolveStudentRecipient(student);
-
-    console.log("Resolved student recipient:", {
-      studentId: student.id,
-      studentName: student.name,
-      recipientEmail: recipient.email || "(no email)",
-    });
+    const recipient =
+      await resolveStudentRecipient(student);
 
     if (!recipient.email) {
       console.warn(
-        `Skipping student ${student.id}: no email address found.`
+        `Skipping student ${student.id}: no email found.`
       );
 
       skipped += 1;
@@ -254,12 +307,16 @@ export async function sendNewAssignmentEmailsToClass(
     const html = templateNewAssignment(
       recipient.name,
       assignmentName,
-      dueDate
+      dueDate,
+      assignmentId,
+      description,
+      difficulty,
+      type,
     );
 
     const ok = await sendEmail({
       to: recipient.email,
-      subject: `משימה חדשה: ${assignmentName}`,
+      subject: `✨ משימה חדשה: ${assignmentName}`,
       html,
     });
 
@@ -278,12 +335,15 @@ export async function sendNewAssignmentEmailsToClass(
     }
   }
 
-  console.log("ClassFlow assignment email result:", {
-    classId,
-    assignmentName,
-    sent,
-    skipped,
-  });
+  console.log(
+    "ClassFlow assignment email result:",
+    {
+      classId,
+      assignmentId,
+      sent,
+      skipped,
+    }
+  );
 
   return {
     sent,

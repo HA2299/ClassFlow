@@ -70,10 +70,11 @@ export function AssignmentSubmissionCard({
           : "מבחן";
 
   return (
-    <form
-      action={handleSubmit}
-      className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_45px_rgba(15,23,42,0.08)]"
-    >
+<form
+  id={`assignment-${assignment.id}`}
+  action={handleSubmit}
+  className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_18px_35px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_45px_rgba(15,23,42,0.08)]"
+>
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-900 via-blue-900 to-sky-700 p-4 text-white">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
