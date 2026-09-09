@@ -5,6 +5,9 @@ import { getSessionProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import type { ResourceType } from "@/types/database";
 
+const RESOURCE_BUCKET = "classflow-resources";
+const MAX_RESOURCE_FILE_SIZE = 20 * 1024 * 1024;
+
 export type ResourceItem = {
   id: string;
   title: string;
@@ -12,13 +15,15 @@ export type ResourceItem = {
   type: ResourceType;
   tags: string[];
   url?: string | null;
+  fileName?: string | null;
+  filePath?: string | null;
   uploadedBy: string;
   createdAt: string;
   teacherId?: string;
   classId?: string | null;
 };
 
-function normalizeType(value: FormDataEntryValue | null | undefined): ResourceType {
+function normalizeType(value: unknown): ResourceType {
   const type = String(value ?? "summary").trim();
   if (type === "presentation" || type === "formula" || type === "link" || type === "notes") {
     return type;
@@ -26,14 +31,17 @@ function normalizeType(value: FormDataEntryValue | null | undefined): ResourceTy
   return "summary";
 }
 
-function mapResourceRow(row: Record<string, any>): ResourceItem {
+function mapResourceRow(row: Record<string, unknown>): ResourceItem {
+  const tags = row.tags;
   return {
     id: String(row.id),
     title: String(row.title ?? ""),
     description: String(row.description ?? ""),
     type: normalizeType(row.type),
-    tags: Array.isArray(row.tags) ? row.tags.map((tag: unknown) => String(tag)) : [],
+    tags: Array.isArray(tags) ? tags.map((tag) => String(tag)) : [],
     url: typeof row.url === "string" && row.url.trim() ? row.url : undefined,
+    fileName: typeof row.file_name === "string" ? row.file_name : null,
+    filePath: typeof row.file_path === "string" ? row.file_path : null,
     uploadedBy: typeof row.uploaded_by === "string" ? row.uploaded_by : "מורה",
     createdAt: String(row.created_at ?? new Date().toISOString()),
     teacherId: typeof row.teacher_id === "string" ? row.teacher_id : undefined,
@@ -88,7 +96,7 @@ export async function getStudentResources(classId: string): Promise<ResourceItem
 export async function addResourceAction(
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; url?: string | null; fileName?: string | null; filePath?: string | null }> {
   const profile = await getSessionProfile();
   if (!profile) return { error: "נדרשת התחברות" };
 
@@ -98,16 +106,40 @@ export async function addResourceAction(
   const type = normalizeType(formData.get("type"));
   const tagsRaw = String(formData.get("tags") ?? "");
   const url = String(formData.get("url") ?? "").trim();
+  const fileEntry = formData.get("file");
+  const file = fileEntry instanceof File && fileEntry.size > 0 ? fileEntry : null;
 
   if (!title || !description) {
     return { error: "יש למלא כותרת ותיאור" };
   }
 
+  if (file && file.size > MAX_RESOURCE_FILE_SIZE) {
+    return { error: "גודל הקובץ המרבי הוא 20MB" };
+  }
+
   const supabase = createClient();
 
   try {
+    const resourceId = crypto.randomUUID();
+    let resourceUrl = url || null;
+    let uploadedPath: string | null = null;
+
+    if (file) {
+      const extension = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : "bin";
+      uploadedPath = `${profile.institution_id}/${profile.id}/${resourceId}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from(RESOURCE_BUCKET)
+        .upload(uploadedPath, file, { contentType: file.type || "application/octet-stream", upsert: false });
+
+      if (uploadError) {
+        return { error: uploadError.message || "לא ניתן להעלות את הקובץ" };
+      }
+
+      resourceUrl = supabase.storage.from(RESOURCE_BUCKET).getPublicUrl(uploadedPath).data.publicUrl;
+    }
+
     const payload = {
-      id: crypto.randomUUID(),
+      id: resourceId,
       institution_id: profile.institution_id,
       teacher_id: profile.id,
       class_id: classId || null,
@@ -118,19 +150,24 @@ export async function addResourceAction(
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean),
-      url: url || null,
+      url: resourceUrl,
+      file_name: file?.name ?? null,
+      file_path: uploadedPath,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     const { error } = await supabase.from("resource_library").insert(payload);
     if (error) {
+      if (uploadedPath) {
+        await supabase.storage.from(RESOURCE_BUCKET).remove([uploadedPath]);
+      }
       return { error: error.message || "לא ניתן להעלות חומר" };
     }
 
     revalidatePath("/teacher/resources");
     revalidatePath("/student/resources");
-    return {};
+    return { url: resourceUrl, fileName: file?.name ?? null, filePath: uploadedPath };
   } catch {
     return { error: "לא ניתן להעלות חומר" };
   }
@@ -143,6 +180,12 @@ export async function deleteResourceAction(id: string): Promise<boolean> {
   const supabase = createClient();
 
   try {
+    const { data: resource } = await supabase
+      .from("resource_library")
+      .select("url, file_path")
+      .eq("id", id)
+      .eq("teacher_id", profile.id)
+      .maybeSingle();
     const { error } = await supabase
       .from("resource_library")
       .delete()
@@ -151,6 +194,13 @@ export async function deleteResourceAction(id: string): Promise<boolean> {
 
     if (error) {
       return false;
+    }
+
+    if (resource?.file_path) {
+      await supabase.storage.from(RESOURCE_BUCKET).remove([resource.file_path]);
+    } else if (resource?.url?.includes(`/storage/v1/object/public/${RESOURCE_BUCKET}/`)) {
+      const filePath = resource.url.split(`/storage/v1/object/public/${RESOURCE_BUCKET}/`)[1];
+      if (filePath) await supabase.storage.from(RESOURCE_BUCKET).remove([filePath]);
     }
 
     revalidatePath("/teacher/resources");

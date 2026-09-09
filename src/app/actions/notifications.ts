@@ -16,29 +16,6 @@ import {
 
 import { createClient } from "@/lib/supabase/server";
 
-type AssignmentType = "homework" | "quiz" | "project" | "exam";
-type AssignmentDifficulty = "easy" | "medium" | "hard";
-
-function getSiteUrl(): string {
-  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-
-  if (configuredSiteUrl) {
-    return configuredSiteUrl.replace(/\/$/, "");
-  }
-
-  const vercelUrl =
-    process.env.NEXT_PUBLIC_VERCEL_URL?.trim() ??
-    process.env.VERCEL_URL?.trim();
-
-  if (vercelUrl) {
-    return `https://${vercelUrl
-      .replace(/^https?:\/\//, "")
-      .replace(/\/$/, "")}`;
-  }
-
-  return "http://localhost:3000";
-}
-
 export async function sendAssignmentNotifications(
   teacherId: string
 ): Promise<{

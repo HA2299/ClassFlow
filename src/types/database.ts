@@ -269,6 +269,8 @@ export interface Database {
           type: ResourceType;
           tags: string[] | null;
           url: string | null;
+          file_name: string | null;
+          file_path: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -282,6 +284,8 @@ export interface Database {
           type?: ResourceType;
           tags?: string[] | null;
           url?: string | null;
+          file_name?: string | null;
+          file_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -295,6 +299,8 @@ export interface Database {
           type?: ResourceType;
           tags?: string[] | null;
           url?: string | null;
+          file_name?: string | null;
+          file_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };

@@ -58,7 +58,7 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">כיתות פעילות</span>
               <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700">
-                Live
+                פעילות
               </span>
             </div>
             <p className="text-4xl font-black text-slate-900">{dashboard.classCount}</p>
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">תלמידים בסיכון</span>
               <span className="rounded-full bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-700">
-                Review
+                לבדיקה
               </span>
             </div>
             <p className="text-4xl font-black text-rose-600">
@@ -88,7 +88,7 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">משימות פעילות</span>
               <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
-                Open
+                פתוחות
               </span>
             </div>
             <p className="text-4xl font-black text-slate-900">
@@ -104,7 +104,7 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">הישגים</span>
               <span className="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-semibold text-violet-700">
-                AI
+                תובנות
               </span>
             </div>
             <p className="text-4xl font-black text-slate-900">92%</p>

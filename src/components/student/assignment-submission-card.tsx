@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitAssignmentSolution } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
-import type { Assignment, Student, Submission } from "@/types/database";
+import type { Assignment, Grade, Student, Submission } from "@/types/database";
+import { Award, MessageSquareText } from "lucide-react";
 
 interface AssignmentSubmissionCardProps {
   assignment: Assignment;
   student: Student;
   existingSubmission?: Submission;
+  grade?: Grade;
 }
 
 function SubmitButton({ existingSubmission }: { existingSubmission?: Submission }) {
@@ -37,6 +39,7 @@ export function AssignmentSubmissionCard({
   assignment,
   student,
   existingSubmission,
+  grade,
 }: AssignmentSubmissionCardProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -101,6 +104,29 @@ export function AssignmentSubmissionCard({
         <p className="text-sm leading-relaxed text-slate-600">
           {assignment.description || "לא צורף תיאור נוסף."}
         </p>
+
+        {grade && existingSubmission?.status === "graded" && (
+          <div className="rounded-2xl border border-emerald-200 bg-gradient-to-l from-emerald-50 to-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="flex size-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/20">
+                  <Award className="size-5" />
+                </span>
+                <div>
+                  <p className="text-xs font-bold text-emerald-700">הציון שלך</p>
+                  <p className="text-2xl font-black text-slate-950">{grade.score}<span className="text-sm font-bold text-slate-400">/{grade.max_score}</span></p>
+                </div>
+              </div>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">הוחזר עם משוב</span>
+            </div>
+            {grade.feedback && (
+              <div className="mt-4 flex gap-2 border-t border-emerald-100 pt-3 text-sm leading-6 text-slate-700">
+                <MessageSquareText className="mt-1 size-4 shrink-0 text-emerald-600" />
+                <p><span className="font-bold">משוב מהמורה: </span>{grade.feedback}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <label htmlFor={`answer-${assignment.id}`} className="text-sm font-semibold text-slate-700">

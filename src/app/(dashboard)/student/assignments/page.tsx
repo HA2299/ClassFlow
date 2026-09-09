@@ -75,7 +75,7 @@ export default async function StudentAssignmentsPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">סה״כ</span>
               <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700">
-                Tasks
+                משימות
               </span>
             </div>
             <p className="text-4xl font-black text-slate-900">{sortedAssignments.length}</p>
@@ -87,7 +87,7 @@ export default async function StudentAssignmentsPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">ציונים</span>
               <span className="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-semibold text-violet-700">
-                Avg
+                ממוצע
               </span>
             </div>
             <p className="text-4xl font-black text-slate-900">{average}%</p>
@@ -100,7 +100,7 @@ export default async function StudentAssignmentsPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">סטטוס</span>
               <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
-                Active
+                פתוחות
               </span>
             </div>
             <p className="text-4xl font-black text-slate-900">
@@ -124,6 +124,7 @@ export default async function StudentAssignmentsPage() {
                 assignment={assignment}
                 student={student}
                 existingSubmission={submissionsByAssignment[index]}
+                grade={grades.find((grade) => grade.assignment_id === assignment.id)}
               />
             ))
           ) : (

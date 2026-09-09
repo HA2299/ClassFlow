@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { GradeChart } from "@/components/analytics/grade-chart";
+import { HeartPulse } from "lucide-react";
 
 export default async function ParentPage() {
   const profile = await requireParent();
@@ -33,16 +34,11 @@ export default async function ParentPage() {
   const trendText = average >= 85 ? "מגמת ההתקדמות חיובית" : average >= 70 ? "מגמת ההתקדמות יציבה" : "נדרשת תשומת לב נוספת";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">שלום, {profile.full_name}</h1>
-        <p className="text-muted-foreground">
-          התקדמות {student.name} · {classItem?.name}
-        </p>
-      </div>
+    <div className="space-y-8">
+      <section className="relative overflow-hidden rounded-[2rem] bg-slate-950 p-6 text-white shadow-[0_26px_70px_rgba(15,23,42,0.18)] sm:p-8"><div className="absolute -left-16 -top-20 size-64 rounded-full bg-emerald-400/15 blur-3xl" /><div className="relative flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[10px] font-bold tracking-[0.22em] text-emerald-200"><HeartPulse className="size-3.5" /> FAMILY VIEW</div><h1 className="text-3xl font-black sm:text-4xl">ההתקדמות של {student.name}</h1><p className="mt-2 text-sm text-slate-300">{classItem?.name} · שלום, {profile.full_name}</p></div><span className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-slate-200">מעקב שבועי</span></div></section>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
+        <Card className="border-0 bg-white/80 shadow-lg">
           <CardHeader>
             <CardTitle className="text-base">ממוצע</CardTitle>
           </CardHeader>
@@ -50,7 +46,7 @@ export default async function ParentPage() {
             <p className="text-2xl font-bold">{average}%</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 shadow-lg">
           <CardHeader>
             <CardTitle className="text-base">משימות</CardTitle>
           </CardHeader>
@@ -58,7 +54,7 @@ export default async function ParentPage() {
             <p className="text-2xl font-bold">{assignments.length}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 bg-white/80 shadow-lg">
           <CardHeader>
             <CardTitle className="text-base">התראות</CardTitle>
           </CardHeader>
@@ -68,7 +64,7 @@ export default async function ParentPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="border-0 bg-white/80 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
         <CardHeader>
           <CardTitle>מגמת ציונים</CardTitle>
         </CardHeader>
@@ -78,7 +74,7 @@ export default async function ParentPage() {
         </CardContent>
       </Card>
 
-      <Card className={flags.length > 0 ? "border-destructive/30" : undefined}>
+      <Card className={flags.length > 0 ? "border-rose-200 bg-rose-50/40 shadow-lg" : "border-0 bg-white/80 shadow-lg"}>
         <CardHeader>
           <CardTitle>התראות אחרונות</CardTitle>
         </CardHeader>

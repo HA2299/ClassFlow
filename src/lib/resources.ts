@@ -7,6 +7,8 @@ export interface ResourceItem {
   type: ResourceType;
   tags: string[];
   url?: string | null;
+  fileName?: string | null;
+  filePath?: string | null;
   uploadedBy: string;
   createdAt: string;
 }

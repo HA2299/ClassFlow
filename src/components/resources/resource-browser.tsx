@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { resourceTypeLabels, resourceTypeOptions, type ResourceItem } from "@/lib/resources";
@@ -26,10 +27,9 @@ export function ResourceBrowser({ initialItems }: { initialItems: ResourceItem[]
 
   return (
     <div className="space-y-6">
-      <Card className="border-0 bg-white/80 shadow-[0_18px_35px_rgba(15,23,42,0.06)]">
+      <Card className="border-0 bg-slate-950 text-white shadow-[0_24px_60px_rgba(15,23,42,0.15)]">
         <CardHeader>
-          <CardTitle className="text-xl text-slate-900">מרכז חומרי עזר</CardTitle>
-          <CardDescription>סיכומים, מצגות, נוסחאות וקישורים שימושיים לכל הכיתה.</CardDescription>
+          <div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-300"><Sparkles className="size-5" /></span><div><CardTitle className="text-xl text-white">מרכז חומרי עזר</CardTitle><CardDescription className="mt-1 text-slate-300">סיכומים, מצגות, נוסחאות וקישורים שימושיים לכל הכיתה.</CardDescription></div></div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-[1.2fr_0.8fr]">
@@ -37,13 +37,13 @@ export function ResourceBrowser({ initialItems }: { initialItems: ResourceItem[]
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="חפשו לפי נושא, קטע או תגית"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300 focus:bg-white/15 focus:ring-4 focus:ring-cyan-300/20"
             />
 
             <select
               value={selectedType}
               onChange={(event) => setSelectedType(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5 text-sm text-white outline-none transition focus:border-cyan-300 focus:bg-white/15 focus:ring-4 focus:ring-cyan-300/20"
             >
               <option value="all">כל הסוגים</option>
               {resourceTypeOptions.map((option) => (
@@ -104,9 +104,10 @@ export function ResourceBrowser({ initialItems }: { initialItems: ResourceItem[]
                     href={item.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+                    download={item.fileName || undefined}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
                   >
-                    פתח חומר
+                    {item.fileName ? "הורד קובץ" : "פתח קישור"}
                   </a>
                 ) : (
                   <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700">
