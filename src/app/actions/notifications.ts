@@ -15,6 +15,195 @@ import {
 } from "@/lib/data/store";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import type { NotificationType } from "@/types/database";
+
+export type InAppNotification = {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  href: string;
+  read_at: string | null;
+  created_at: string;
+};
+
+type NotificationPayload = {
+  institutionId: string;
+  recipientIds: string[];
+  type: NotificationType;
+  title: string;
+  message: string;
+  href: string;
+};
+
+async function createInAppNotifications(payload: NotificationPayload): Promise<void> {
+  const adminClient = createAdminClient();
+  const recipientIds = Array.from(new Set(payload.recipientIds)).filter(Boolean);
+  if (!adminClient || recipientIds.length === 0) return;
+
+  const { error } = await adminClient.from("in_app_notifications").insert(
+    recipientIds.map((recipientId) => ({
+      institution_id: payload.institutionId,
+      recipient_id: recipientId,
+      type: payload.type,
+      title: payload.title,
+      message: payload.message,
+      href: payload.href,
+    }))
+  );
+
+  if (error) console.error("Failed to create in-app notifications", error);
+}
+
+async function getStudentProfileIds(studentIds: string[], institutionId: string): Promise<string[]> {
+  const adminClient = createAdminClient();
+  if (!adminClient || studentIds.length === 0) return [];
+
+  const { data, error } = await adminClient
+    .from("profiles")
+    .select("id")
+    .eq("institution_id", institutionId)
+    .in("linked_student_id", studentIds);
+
+  if (error) {
+    console.error("Failed to resolve student notification recipients", error);
+    return [];
+  }
+
+  return (data ?? []).map((profile) => profile.id);
+}
+
+export async function getMyNotifications(): Promise<InAppNotification[]> {
+  const profile = await (await import("@/lib/auth/session")).getSessionProfile();
+  if (!profile) return [];
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("in_app_notifications")
+    .select("id, type, title, message, href, read_at, created_at")
+    .eq("recipient_id", profile.id)
+    .order("created_at", { ascending: false })
+    .limit(25);
+
+  if (error) {
+    console.error("Failed to load in-app notifications", error);
+    return [];
+  }
+
+  return (data ?? []) as InAppNotification[];
+}
+
+export async function markNotificationRead(notificationId: string): Promise<boolean> {
+  const profile = await (await import("@/lib/auth/session")).getSessionProfile();
+  if (!profile) return false;
+
+  const { error } = await createClient()
+    .from("in_app_notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", notificationId)
+    .eq("recipient_id", profile.id);
+
+  return !error;
+}
+
+export async function markAllNotificationsRead(): Promise<boolean> {
+  const profile = await (await import("@/lib/auth/session")).getSessionProfile();
+  if (!profile) return false;
+
+  const { error } = await createClient()
+    .from("in_app_notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("recipient_id", profile.id)
+    .is("read_at", null);
+
+  return !error;
+}
+
+export async function notifyStudentsAboutAssignment({
+  institutionId,
+  studentIds,
+  assignmentName,
+}: {
+  institutionId: string;
+  studentIds: string[];
+  assignmentName: string;
+}) {
+  const recipientIds = await getStudentProfileIds(studentIds, institutionId);
+  await createInAppNotifications({
+    institutionId,
+    recipientIds,
+    type: "assignment",
+    title: "משימה חדשה",
+    message: `נוספה משימה חדשה: ${assignmentName}`,
+    href: "/student/assignments",
+  });
+}
+
+export async function notifyStudentAboutGrade({
+  institutionId,
+  studentId,
+  assignmentName,
+  score,
+}: {
+  institutionId: string;
+  studentId: string;
+  assignmentName: string;
+  score: number;
+}) {
+  const recipientIds = await getStudentProfileIds([studentId], institutionId);
+  await createInAppNotifications({
+    institutionId,
+    recipientIds,
+    type: "grade",
+    title: "הגשה נבדקה",
+    message: `קיבלת ${score}/100 על ${assignmentName}`,
+    href: "/student/assignments",
+  });
+}
+
+export async function notifyTeacherAboutSubmission({
+  institutionId,
+  teacherId,
+  assignmentId,
+  classId,
+  studentName,
+}: {
+  institutionId: string;
+  teacherId: string;
+  assignmentId: string;
+  classId: string;
+  studentName: string;
+}) {
+  await createInAppNotifications({
+    institutionId,
+    recipientIds: [teacherId],
+    type: "submission",
+    title: "הגשה חדשה",
+    message: `${studentName} הגיש/ה משימה חדשה לבדיקה`,
+    href: `/classes/${classId}/assignments/${assignmentId}`,
+  });
+}
+
+export async function notifyStudentsAboutResource({
+  institutionId,
+  studentIds,
+  resourceTitle,
+}: {
+  institutionId: string;
+  studentIds: string[];
+  resourceTitle: string;
+}) {
+  const recipientIds = await getStudentProfileIds(studentIds, institutionId);
+  await createInAppNotifications({
+    institutionId,
+    recipientIds,
+    type: "resource",
+    title: "חומר לימוד חדש",
+    message: `נוסף חומר חדש לספרייה: ${resourceTitle}`,
+    href: "/student/resources",
+  });
+}
 
 export async function sendAssignmentNotifications(
   teacherId: string

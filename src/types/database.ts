@@ -21,6 +21,7 @@ export type InsightType =
   | "student_analysis"
   | "recommendation"
   | "risk";
+export type NotificationType = "assignment" | "grade" | "submission" | "resource";
 
 export type Json =
   | string
@@ -48,6 +49,34 @@ export interface Database {
           id?: string;
           name?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      in_app_notifications: {
+        Row: {
+          id: string;
+          institution_id: string;
+          recipient_id: string;
+          type: NotificationType;
+          title: string;
+          message: string;
+          href: string;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          institution_id: string;
+          recipient_id: string;
+          type: NotificationType;
+          title: string;
+          message: string;
+          href: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          read_at?: string | null;
         };
         Relationships: [];
       };

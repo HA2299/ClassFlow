@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import type { ResourceType } from "@/types/database";
+import { getStudentsByClass } from "@/lib/data/store";
+import { notifyStudentsAboutResource } from "@/app/actions/notifications";
 
 const RESOURCE_BUCKET = "classflow-resources";
 const MAX_RESOURCE_FILE_SIZE = 20 * 1024 * 1024;
@@ -163,6 +165,15 @@ export async function addResourceAction(
         await supabase.storage.from(RESOURCE_BUCKET).remove([uploadedPath]);
       }
       return { error: error.message || "לא ניתן להעלות חומר" };
+    }
+
+    if (classId) {
+      const students = await getStudentsByClass(classId);
+      await notifyStudentsAboutResource({
+        institutionId: profile.institution_id,
+        studentIds: students.map((student) => student.id),
+        resourceTitle: title,
+      });
     }
 
     revalidatePath("/teacher/resources");

@@ -16,6 +16,7 @@ import {
   updateSubmissionStatus,
 } from "@/lib/data/store";
 import type { AuthActionState } from "@/app/actions/auth";
+import { notifyStudentAboutGrade } from "@/app/actions/notifications";
 
 export async function gradeSubmission(
   _prev: AuthActionState,
@@ -54,8 +55,9 @@ export async function gradeSubmission(
     return { error: "ציון לא תקין (0-100)" };
   }
 
+  const existingGrade = await getGradeBySubmission(submissionId);
   const grade: Grade = {
-    id: (await getGradeBySubmission(submissionId))?.id ?? crypto.randomUUID(),
+    id: existingGrade?.id ?? crypto.randomUUID(),
     submission_id: submissionId,
     student_id: submission.student_id,
     assignment_id: assignmentId,
@@ -70,6 +72,15 @@ export async function gradeSubmission(
 
   await upsertGrade(grade);
   await updateSubmissionStatus(submissionId, "graded");
+
+  if (!existingGrade) {
+    await notifyStudentAboutGrade({
+      institutionId: profile.institution_id,
+      studentId: submission.student_id,
+      assignmentName: assignment.name,
+      score: parsedScore,
+    });
+  }
 
   revalidatePath(`/classes/${classId}/assignments/${assignmentId}`);
   revalidatePath(`/classes/${classId}/students/${submission.student_id}`);

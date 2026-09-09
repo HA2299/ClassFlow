@@ -15,6 +15,7 @@ import {
   findProfileByIdentityNumber,
   findStudentByIdentityNumber,
   getClassByIdForTeacher,
+  getClassById,
   getClassesByTeacher,
   getRecentClassesByTeacher,
   getStudentsByClass,
@@ -28,7 +29,11 @@ import {
   getSubmissionByStudentAndAssignment,
   upsertSubmission,
 } from "@/lib/data/store";
-import { sendNewAssignmentEmailsToClass } from "@/app/actions/notifications";
+import {
+  notifyStudentsAboutAssignment,
+  notifyTeacherAboutSubmission,
+  sendNewAssignmentEmailsToClass,
+} from "@/app/actions/notifications";
 
 export type AuthActionState = {
   error?: string;
@@ -823,6 +828,13 @@ export async function createAssignment(
     updated_at: createdAt,
   });
 
+  const students = await getStudentsByClass(classId);
+  await notifyStudentsAboutAssignment({
+    institutionId: profile.institution_id,
+    studentIds: students.map((student) => student.id),
+    assignmentName: cleanName,
+  });
+
   // ---------------------------------------------------------
   // Send email notification to students
   // ---------------------------------------------------------
@@ -928,6 +940,17 @@ export async function submitAssignmentSolution(
     status: finalStatus,
     created_at: submittedAt,
   });
+
+  const classItem = await getClassById(assignment.class_id);
+  if (classItem && !existingSubmission) {
+    await notifyTeacherAboutSubmission({
+      institutionId: profile.institution_id,
+      teacherId: classItem.teacher_id,
+      assignmentId,
+      classId: assignment.class_id,
+      studentName: student.name,
+    });
+  }
 
   revalidatePath(`/classes/${assignment.class_id}`);
   revalidatePath(`/classes/${assignment.class_id}/assignments/${assignmentId}`);

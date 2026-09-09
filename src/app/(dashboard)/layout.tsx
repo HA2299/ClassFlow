@@ -3,7 +3,9 @@ import { signOut } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth/session";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
-import { Bell, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { getMyNotifications } from "@/app/actions/notifications";
+import { NotificationBell } from "@/components/dashboard/notification-bell";
 
 export default async function DashboardLayout({
   children,
@@ -11,6 +13,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const profile = await requireProfile();
+  const notifications = await getMyNotifications();
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.1),transparent_30%),linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] text-slate-900">
       <header className="sticky top-0 z-40 border-b border-white/70 bg-white/80 backdrop-blur-2xl shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
@@ -28,7 +31,7 @@ export default async function DashboardLayout({
             <DashboardNav role={profile.role} fullName={profile.full_name} />
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" className="icon-button hidden sm:inline-flex" aria-label="התראות"><Bell className="size-4" /></button>
+            <NotificationBell initialNotifications={notifications} />
             <div className="hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 sm:block">
               {profile.full_name}
             </div>

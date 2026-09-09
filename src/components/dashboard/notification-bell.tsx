@@ -1,0 +1,76 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { Bell, Check, CheckCheck, Loader2 } from "lucide-react";
+import {
+  markAllNotificationsRead,
+  markNotificationRead,
+  type InAppNotification,
+} from "@/app/actions/notifications";
+import { cn } from "@/lib/utils";
+
+function formatNotificationTime(value: string) {
+  const date = new Date(value);
+  const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+  if (minutes < 1) return "עכשיו";
+  if (minutes < 60) return `לפני ${minutes} דקות`;
+  if (minutes < 1440) return `לפני ${Math.floor(minutes / 60)} שעות`;
+  return date.toLocaleDateString("he-IL", { day: "numeric", month: "short" });
+}
+
+export function NotificationBell({ initialNotifications }: { initialNotifications: InAppNotification[] }) {
+  const router = useRouter();
+  const [notifications, setNotifications] = useState(initialNotifications);
+  const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const unreadCount = notifications.filter((notification) => !notification.read_at).length;
+
+  const handleRead = (notification: InAppNotification) => {
+    if (!notification.read_at) {
+      setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item));
+      startTransition(() => { void markNotificationRead(notification.id); });
+    }
+    setOpen(false);
+    router.push(notification.href);
+  };
+
+  const handleMarkAllRead = () => {
+    setNotifications((current) => current.map((notification) => ({ ...notification, read_at: notification.read_at ?? new Date().toISOString() })));
+    startTransition(() => { void markAllNotificationsRead(); });
+  };
+
+  return (
+    <div className="relative">
+      <button type="button" className="icon-button relative" aria-label={unreadCount ? `${unreadCount} התראות שלא נקראו` : "התראות"} aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        <Bell className={cn("size-4", unreadCount > 0 && "text-cyan-700")} />
+        {unreadCount > 0 && <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full border-2 border-white bg-rose-500 px-1 text-[10px] font-black leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+      </button>
+
+      {open && (
+        <>
+          <button type="button" className="fixed inset-0 z-40 cursor-default bg-transparent" aria-label="סגור התראות" onClick={() => setOpen(false)} />
+          <section className="absolute left-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+            <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <div><h2 className="font-black text-slate-950">התראות</h2><p className="text-xs text-slate-500">{unreadCount ? `${unreadCount} חדשות` : "הכול נקרא"}</p></div>
+              {unreadCount > 0 && <button type="button" onClick={handleMarkAllRead} disabled={isPending} className="inline-flex items-center gap-1 text-xs font-bold text-cyan-700 hover:text-cyan-900"><CheckCheck className="size-3.5" /> סמן הכול כנקרא</button>}
+            </header>
+            <div className="max-h-[min(28rem,65vh)] overflow-y-auto p-2">
+              {isPending && notifications.length === 0 && <div className="flex items-center justify-center gap-2 p-8 text-sm text-slate-500"><Loader2 className="size-4 animate-spin" /> טוען התראות...</div>}
+              {!isPending && notifications.length === 0 && <div className="p-8 text-center"><span className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"><Bell className="size-5" /></span><p className="mt-3 text-sm font-bold text-slate-700">אין התראות חדשות</p><p className="mt-1 text-xs text-slate-500">נעדכן אותך כאן כשיהיה משהו חדש.</p></div>}
+              {notifications.map((notification) => (
+                <button type="button" key={notification.id} onClick={() => handleRead(notification)} className={cn("flex w-full gap-3 rounded-2xl p-3 text-right transition hover:bg-slate-50", !notification.read_at && "bg-cyan-50/70")}>
+                  <span className={cn("mt-1 flex size-8 shrink-0 items-center justify-center rounded-xl", notification.read_at ? "bg-slate-100 text-slate-400" : "bg-cyan-600 text-white")}>
+                    {notification.read_at ? <Check className="size-4" /> : <Bell className="size-4" />}
+                  </span>
+                  <span className="min-w-0 flex-1"><span className={cn("block text-sm leading-5", notification.read_at ? "font-semibold text-slate-700" : "font-black text-slate-950")}>{notification.title}</span><span className="mt-0.5 block text-xs leading-5 text-slate-500">{notification.message}</span><span className="mt-1 block text-[10px] font-medium text-slate-400">{formatNotificationTime(notification.created_at)}</span></span>
+                  {!notification.read_at && <span className="mt-2 size-2 shrink-0 rounded-full bg-cyan-500" />}
+                </button>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
