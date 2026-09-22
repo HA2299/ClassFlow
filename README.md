@@ -60,6 +60,37 @@ npx supabase db push
 
 אם ה־SQL Editor מציג את ההודעה `Create both demo users in Supabase Authentication before running this seed`, חזרו על שלבים 1-3.
 
+אם מחיקה דרך **Authentication > Users** נכשלת עם `Database error loading user`, הריצו ב־SQL Editor את השחזור הבא. הוא מוחק רק את שני משתמשי הדמו, וה־FK מנקה את הפרופילים המקושרים:
+
+```sql
+begin;
+
+delete from public.grades
+where graded_by in (
+	select id from auth.users
+	where email in ('9455988@gmail.com', 'hodaya2299@gmail.com')
+);
+
+delete from auth.users
+where email in ('9455988@gmail.com', 'hodaya2299@gmail.com');
+
+commit;
+```
+
+בדקו שהמחיקה הצליחה:
+
+```sql
+select email
+from auth.users
+where email in ('9455988@gmail.com', 'hodaya2299@gmail.com');
+```
+
+אם מוחזרות אפס שורות, צרו מחדש את שני המשתמשים דרך **Authentication > Users > Add user**, עם הסיסמה `ClassFlow123!` ו־**Auto Confirm User**, ואז הריצו את `supabase/seed.sql`.
+
+### הסרת המורה `9455988@gmail.com`
+
+כדי למחוק את המורה ואת הכיתות, המשימות, התלמידים, ההגשות, הציונים, הסיכונים, המשאבים וההתראות שבבעלותו בלבד, הריצו את כל הקובץ `supabase/remove-teacher-9455988.sql` ב־SQL Editor. הקובץ אינו מוחק תלמידים שמשתמשים באותו אימייל בשדה הנתונים שלהם אם הם אינם בכיתות של המורה.
+
 להרצה מקומית, לאחר התקנת Supabase CLI והרצת `supabase start`:
 
 ```bash

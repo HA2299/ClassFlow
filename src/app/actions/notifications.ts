@@ -2,6 +2,7 @@
 
 import {
   sendEmail,
+  templateGradePublished,
   templateAtRiskAlert,
   templateNewAssignment,
   templateSubmissionReminder,
@@ -11,6 +12,7 @@ import {
   getActiveAssignmentsForTeacher,
   getAtRiskStudentsForTeacher,
   findProfileById,
+  getStudentById,
   getStudentsByClass,
 } from "@/lib/data/store";
 
@@ -145,11 +147,15 @@ export async function notifyStudentAboutGrade({
   studentId,
   assignmentName,
   score,
+  maxScore = 100,
+  feedback,
 }: {
   institutionId: string;
   studentId: string;
   assignmentName: string;
   score: number;
+  maxScore?: number;
+  feedback?: string | null;
 }) {
   const recipientIds = await getStudentProfileIds([studentId], institutionId);
   await createInAppNotifications({
@@ -160,6 +166,31 @@ export async function notifyStudentAboutGrade({
     message: `קיבלת ${score}/100 על ${assignmentName}`,
     href: "/student/assignments",
   });
+
+  const student = await getStudentById(studentId);
+  if (!student) return;
+
+  const recipient = await resolveStudentRecipient(student);
+  if (!recipient.email) {
+    console.warn(`Skipping grade email for student ${studentId}: no email found.`);
+    return;
+  }
+
+  const sent = await sendEmail({
+    to: recipient.email,
+    subject: `🎉 הציון שלך מוכן: ${assignmentName}`,
+    html: templateGradePublished({
+      studentName: recipient.name,
+      assignmentName,
+      score,
+      maxScore,
+      feedback,
+    }),
+  });
+
+  if (!sent) {
+    console.error(`Failed to send grade email to ${recipient.email}`);
+  }
 }
 
 export async function notifyTeacherAboutSubmission({

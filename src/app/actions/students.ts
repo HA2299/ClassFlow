@@ -79,6 +79,8 @@ export async function gradeSubmission(
       studentId: submission.student_id,
       assignmentName: assignment.name,
       score: parsedScore,
+      maxScore: grade.max_score,
+      feedback: grade.feedback,
     });
   }
 

@@ -477,14 +477,12 @@ export async function signIn(
 ): Promise<AuthActionState> {
   const email = formData.get("email");
   const password = formData.get("password");
-  const role = formData.get("role");
 
   if (typeof email !== "string" || typeof password !== "string") {
     return { error: "אימייל וסיסמה נדרשים" };
   }
 
   const trimmedEmail = email.trim().toLowerCase();
-  const normalizedRole = typeof role === "string" ? role.trim().toLowerCase() : "";
 
   if (!trimmedEmail || !password) {
     return { error: "אימייל וסיסמה נדרשים" };
@@ -497,6 +495,17 @@ export async function signIn(
   });
 
   if (error) {
+    console.error("Supabase sign-in failed", {
+      email: trimmedEmail,
+      status: error.status,
+      code: error.code,
+      message: error.message,
+    });
+    if (error.code === "unexpected_failure" || error.status === 500) {
+      return {
+        error: "שירות ההתחברות של Supabase אינו מצליח לקרוא את חשבון המשתמש. יש למחוק וליצור אותו מחדש ב-Supabase Authentication.",
+      };
+    }
     return { error: "אימייל או סיסמה שגויים" };
   }
 
@@ -511,13 +520,12 @@ export async function signIn(
       typeof user.user_metadata?.full_name === "string"
         ? user.user_metadata.full_name
         : trimmedEmail.split("@")[0];
-    const userRole =
+    const metadataRole =
       typeof user.user_metadata?.role === "string" &&
       (user.user_metadata.role === "teacher" || user.user_metadata.role === "student")
         ? user.user_metadata.role
-        : normalizedRole === "student"
-          ? "student"
-          : "teacher";
+        : null;
+    const userRole = profile?.role === "student" ? "student" : metadataRole ?? "teacher";
 
  if (!profile) {
   let creation;

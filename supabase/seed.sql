@@ -1,14 +1,20 @@
--- Local/demo data only. Run after creating the two Auth users through Supabase.
+-- Local/demo data only. Run after creating the remaining Auth user through Supabase.
 -- All records below are synthetic and intentionally use the two requested emails.
 
 truncate table public.in_app_notifications, public.resource_library, public.ai_insights,
   public.risk_flags, public.grades, public.submissions, public.assignments,
   public.students, public.classes, public.profiles, public.institutions cascade;
 
+delete from public.grades
+where graded_by in (
+  select id from auth.users
+  where email in ('9455988@gmail.com', 'hodaya2299@gmail.com')
+);
+
 do $$
 begin
-  if (select count(*) from auth.users where email in ('9455988@gmail.com', 'hodaya2299@gmail.com')) <> 2 then
-    raise exception 'Create both demo users in Supabase Authentication before running this seed';
+  if (select count(*) from auth.users where email = 'hodaya2299@gmail.com') <> 1 then
+    raise exception 'Create hodaya2299@gmail.com in Supabase Authentication before running this seed';
   end if;
 end $$;
 
@@ -29,7 +35,7 @@ begin
     email,
     raw_user_meta_data->>'identity_number'
   from auth.users
-  where email in ('9455988@gmail.com', 'hodaya2299@gmail.com');
+  where email = 'hodaya2299@gmail.com';
 end $$;
 
 do $$
@@ -58,8 +64,8 @@ declare
     'רותם תורגמן','שחר אדרי','שני אשכנזי','אורי פלד','הילה קדם'
   ];
 begin
-  select id into teacher_one from auth.users where email = '9455988@gmail.com';
   select id into teacher_two from auth.users where email = 'hodaya2299@gmail.com';
+  teacher_one := teacher_two;
   select id into institution_id from public.institutions limit 1;
 
   insert into public.classes (id, institution_id, name, teacher_id)

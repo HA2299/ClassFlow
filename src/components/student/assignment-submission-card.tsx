@@ -62,7 +62,11 @@ export function AssignmentSubmissionCard({
 
   const dueDate = new Date(assignment.due_date);
   const isPastDue = dueDate < new Date();
-  const status = existingSubmission ? formatStatus(existingSubmission.status) : null;
+  const status = grade
+    ? formatStatus("graded")
+    : existingSubmission
+      ? formatStatus(existingSubmission.status)
+      : null;
   const typeLabel =
     assignment.type === "homework"
       ? "שיעורי בית"
@@ -105,7 +109,7 @@ export function AssignmentSubmissionCard({
           {assignment.description || "לא צורף תיאור נוסף."}
         </p>
 
-        {grade && existingSubmission?.status === "graded" && (
+        {grade && (
           <div className="rounded-2xl border border-emerald-200 bg-gradient-to-l from-emerald-50 to-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">

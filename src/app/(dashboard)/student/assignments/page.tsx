@@ -43,7 +43,9 @@ export default async function StudentAssignmentsPage() {
   );
 
   const submittedCount = submissionsByAssignment.filter(Boolean).length;
-  const gradedCount = submissionsByAssignment.filter((submission) => submission?.status === "graded").length;
+  const gradedCount = grades.filter((grade) =>
+    sortedAssignments.some((assignment) => assignment.id === grade.assignment_id)
+  ).length;
   const openAssignments = sortedAssignments.filter((assignment) => new Date(assignment.due_date).getTime() >= Date.now());
   const nextAssignment = sortedAssignments.find((assignment, index) => !submissionsByAssignment[index]);
 

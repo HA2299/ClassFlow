@@ -69,20 +69,6 @@ export function LoginForm() {
               className="rounded-2xl border-slate-200 bg-slate-50/80 px-3.5 py-2.5 text-slate-900 shadow-sm ring-0 transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="login-role" className="text-sm font-medium text-slate-700">
-              סוג חשבון
-            </Label>
-            <select
-              id="login-role"
-              name="role"
-              defaultValue="teacher"
-              className="flex h-11 w-full rounded-2xl border border-slate-200 bg-slate-50/80 px-3.5 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-            >
-              <option value="teacher">מורה</option>
-              <option value="student">תלמיד</option>
-            </select>
-          </div>
           {state.error && (
             <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
               {state.error}

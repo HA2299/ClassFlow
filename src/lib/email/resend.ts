@@ -438,6 +438,64 @@ export function templateAtRiskAlert(
   return `<p>שלום ${teacherName},</p><p>התראה: ${studentName} מסומן/ת בסיכון.</p>`;
 }
 
+export function templateGradePublished({
+  studentName,
+  assignmentName,
+  score,
+  maxScore,
+  feedback,
+}: {
+  studentName: string;
+  assignmentName: string;
+  score: number;
+  maxScore: number;
+  feedback?: string | null;
+}): string {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const feedbackBlock = feedback?.trim()
+    ? `<p style="margin:0;color:#334155;font-size:15px;line-height:1.7;">${feedback}</p>`
+    : `<p style="margin:0;color:#64748b;font-size:14px;line-height:1.7;">לא צורף משוב נוסף. המשיכו כך!</p>`;
+
+  return `
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head>
+<body style="margin:0;padding:32px 12px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;direction:rtl;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 10px 40px rgba(15,23,42,0.10);">
+        <tr><td style="padding:36px 32px;text-align:center;background:linear-gradient(135deg,#0f172a,#2563eb,#0f766e);">
+          <div style="color:#dbeafe;font-size:11px;font-weight:bold;letter-spacing:1px;">CLASSFLOW</div>
+          <h1 style="margin:18px 0 8px;color:#ffffff;font-size:30px;line-height:1.2;">הציון שלך מוכן 🎉</h1>
+          <p style="margin:0;color:#dbeafe;font-size:15px;">המורה בדק/ה את ההגשה שלך</p>
+        </td></tr>
+        <tr><td style="padding:30px 32px 12px;">
+          <p style="margin:0;color:#334155;font-size:17px;line-height:1.7;">שלום <strong>${studentName}</strong>,</p>
+          <p style="margin:10px 0 0;color:#64748b;font-size:14px;line-height:1.7;">הציון עבור המשימה <strong>${assignmentName}</strong> פורסם במערכת.</p>
+        </td></tr>
+        <tr><td style="padding:18px 32px;">
+          <div style="padding:24px;text-align:center;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:20px;">
+            <div style="color:#047857;font-size:12px;font-weight:bold;">הציון שלך</div>
+            <div style="margin-top:8px;color:#064e3b;font-size:42px;font-weight:bold;">${score}<span style="color:#6b7280;font-size:20px;">/${maxScore}</span></div>
+          </div>
+        </td></tr>
+        <tr><td style="padding:0 32px 24px;">
+          <div style="padding:20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;">
+            <div style="margin-bottom:8px;color:#64748b;font-size:12px;font-weight:bold;">משוב מהמורה</div>
+            ${feedbackBlock}
+          </div>
+        </td></tr>
+        <tr><td style="padding:4px 32px 32px;text-align:center;">
+          <a href="${appUrl}/student/assignments" style="display:inline-block;padding:15px 30px;border-radius:14px;background:#2563eb;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;">👀 לצפייה בציון ובמשוב</a>
+        </td></tr>
+        <tr><td style="padding:22px 32px;text-align:center;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px;">נשלח אליך מ-ClassFlow</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 export function templateParentUpdate(
   parentName: string,
   studentName: string,
