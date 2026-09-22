@@ -74,7 +74,7 @@ async function ensureSubmissionBucket(adminClient: NonNullable<ReturnType<typeof
 
   if (bucketMissing) {
     const createdBucket = await adminClient.storage.createBucket(SUBMISSION_BUCKET_NAME, {
-      public: true,
+      public: false,
       allowedMimeTypes: [...SUBMISSION_ALLOWED_MIME_TYPES],
       fileSizeLimit: "20MB",
     });
@@ -86,10 +86,10 @@ async function ensureSubmissionBucket(adminClient: NonNullable<ReturnType<typeof
     return;
   }
 
-  if (bucketResponse.data && bucketResponse.data.public === false) {
-    const updatedBucket = await adminClient.storage.updateBucket(SUBMISSION_BUCKET_NAME, { public: true });
+  if (bucketResponse.data && bucketResponse.data.public === true) {
+    const updatedBucket = await adminClient.storage.updateBucket(SUBMISSION_BUCKET_NAME, { public: false });
     if (updatedBucket.error) {
-      throw new Error(updatedBucket.error.message || "לא ניתן להפוך את ה-bucket ל-public");
+      throw new Error(updatedBucket.error.message || "לא ניתן להפוך את ה-bucket לפרטי");
     }
 
     return;
@@ -110,7 +110,7 @@ async function uploadSubmissionFiles({
   studentId: string;
   institutionId: string;
   files: File[];
-}): Promise<{ urls: string[]; names: string[] }> {
+}): Promise<{ paths: string[]; names: string[] }> {
   const adminClient = createAdminClient();
 
   if (!adminClient) {
@@ -119,7 +119,7 @@ async function uploadSubmissionFiles({
 
   await ensureSubmissionBucket(adminClient);
 
-  const urls: string[] = [];
+  const paths: string[] = [];
   const names: string[] = [];
 
   for (const file of files) {
@@ -137,12 +137,11 @@ async function uploadSubmissionFiles({
       throw new Error(error?.message || "העלאת הקובץ נכשלה");
     }
 
-    const publicUrl = adminClient.storage.from(SUBMISSION_BUCKET_NAME).getPublicUrl(data.path).data.publicUrl;
-    urls.push(publicUrl);
+    paths.push(data.path);
     names.push(file.name);
   }
 
-  return { urls, names };
+  return { paths, names };
 }
 
 function getSiteUrl(): string {
@@ -888,8 +887,12 @@ export async function submitAssignmentSolution(
 
   const profile = await getSessionProfile();
 
-  if (!profile) {
+  if (!profile || profile.role !== "student" || !profile.linked_student_id) {
     return { error: "נדרשת התחברות" };
+  }
+
+  if (profile.linked_student_id !== studentId) {
+    return { error: "לא ניתן להגיש בשם תלמיד אחר" };
   }
 
   const assignment = await getAssignmentById(assignmentId);
@@ -903,7 +906,7 @@ export async function submitAssignmentSolution(
   }
 
   const files = rawAttachments.filter((item): item is File => item instanceof File && item.size > 0);
-  let attachmentUrls: string[] | null = null;
+  let attachmentPaths: string[] | null = null;
   let attachmentNames: string[] | null = null;
 
   if (files.length > 0) {
@@ -914,7 +917,7 @@ export async function submitAssignmentSolution(
         institutionId: profile.institution_id,
         files,
       });
-      attachmentUrls = uploaded.urls;
+      attachmentPaths = uploaded.paths;
       attachmentNames = uploaded.names;
     } catch (error) {
       return {
@@ -929,7 +932,7 @@ export async function submitAssignmentSolution(
   const normalizedAnswer = typeof answer === "string" ? answer.trim() : "";
   const existingSubmission = await getSubmissionByStudentAndAssignment(studentId, assignmentId);
 
-  if (!normalizedAnswer && (!attachmentUrls || attachmentUrls.length === 0)) {
+  if (!normalizedAnswer && (!attachmentPaths || attachmentPaths.length === 0)) {
     return { error: "יש להוסיף תשובה או קובץ מצורף" };
   }
 
@@ -942,7 +945,7 @@ export async function submitAssignmentSolution(
     student_id: studentId,
     institution_id: profile.institution_id,
     answer: normalizedAnswer,
-    attachment_urls: attachmentUrls ?? existingSubmission?.attachment_urls ?? null,
+    attachment_urls: attachmentPaths ?? existingSubmission?.attachment_urls ?? null,
     attachment_names: attachmentNames ?? existingSubmission?.attachment_names ?? null,
     submitted_at: submittedAt,
     status: finalStatus,

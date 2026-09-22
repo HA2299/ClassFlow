@@ -107,7 +107,7 @@ export default async function DashboardPage() {
                 תובנות
               </span>
             </div>
-            <p className="text-4xl font-black text-slate-900">92%</p>
+            <p className="text-4xl font-black text-slate-900">{dashboard.submissionRate}%</p>
             <p className="text-xs text-slate-500">שיעור הגשה ממוצע</p>
           </div>
         </Card>

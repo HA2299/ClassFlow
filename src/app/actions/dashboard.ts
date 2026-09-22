@@ -10,6 +10,7 @@ import {
   getAIInsightsForClass,
   getRecentSubmissionsForTeacher,
   getClassesByTeacher,
+  getSubmissionRateForTeacher,
   addRiskFlag,
   riskFlagExists,
 } from "@/lib/data/store";
@@ -21,13 +22,21 @@ export async function getDashboardData(teacherId: string): Promise<{
     Submission & { assignment?: Assignment; student?: Student }
   >;
   classCount: number;
+  submissionRate: number;
 }> {
   const classes = await getClassesByTeacher(teacherId);
+  const [atRiskStudents, activeAssignments, recentSubmissions, submissionRate] = await Promise.all([
+    getAtRiskStudentsForTeacher(teacherId),
+    getActiveAssignmentsForTeacher(teacherId),
+    getRecentSubmissionsForTeacher(teacherId),
+    getSubmissionRateForTeacher(teacherId),
+  ]);
   return {
-    atRiskStudents: await getAtRiskStudentsForTeacher(teacherId),
-    activeAssignments: await getActiveAssignmentsForTeacher(teacherId),
-    recentSubmissions: await getRecentSubmissionsForTeacher(teacherId),
+    atRiskStudents,
+    activeAssignments,
+    recentSubmissions,
     classCount: classes.length,
+    submissionRate,
   };
 }
 

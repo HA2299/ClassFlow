@@ -184,7 +184,7 @@ export default async function AssignmentDetailPage({
                             {submission.attachment_urls.map((url, index) => (
                               <li key={`${url}-${index}`}>
                                 <a
-                                  href={url}
+                                  href={`/api/submissions/file?path=${encodeURIComponent(url)}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="inline-flex items-center gap-2 text-sm text-primary underline underline-offset-2"

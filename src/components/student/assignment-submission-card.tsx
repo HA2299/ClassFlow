@@ -166,7 +166,7 @@ export function AssignmentSubmissionCard({
                   <li key={`${name}-${index}`}>
                     {existingSubmission.attachment_urls?.[index] ? (
                       <a
-                        href={existingSubmission.attachment_urls[index]}
+                        href={`/api/submissions/file?path=${encodeURIComponent(existingSubmission.attachment_urls[index])}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-blue-700 underline underline-offset-2"

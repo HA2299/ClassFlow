@@ -395,6 +395,52 @@ export async function getActiveAssignmentsForTeacher(
   return assignments.filter((a) => a.due_date >= now);
 }
 
+export async function getSubmissionRateForTeacher(teacherId: string): Promise<number> {
+  const classes = await getClassesByTeacher(teacherId);
+  const classIds = classes.map((classItem) => classItem.id);
+  if (classIds.length === 0) return 0;
+
+  const assignments = await getAssignmentsForTeacher(teacherId);
+  const students = await getStudentsForClasses(classIds);
+  const totalPossible = students.length * assignments.length;
+  if (totalPossible === 0 || assignments.length === 0) return 0;
+
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("submissions")
+    .select("answer, attachment_urls")
+    .in("assignment_id", assignments.map((assignment) => assignment.id));
+
+  const submitted = (data ?? []).filter(
+    (submission) => Boolean(submission.answer?.trim()) || (submission.attachment_urls?.length ?? 0) > 0
+  ).length;
+  return Math.round((submitted / totalPossible) * 100);
+}
+
+async function getSubmissionsForAssignments(assignmentIds: string[]): Promise<Submission[]> {
+  if (assignmentIds.length === 0) return [];
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("submissions")
+    .select("*")
+    .in("assignment_id", assignmentIds);
+  if (error || !data) return [];
+  return data.map(mapSubmission);
+}
+
+async function getStudentsForClasses(classIds: string[]): Promise<Student[]> {
+  if (classIds.length === 0) return [];
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("students")
+    .select("*")
+    .in("class_id", classIds);
+  if (error || !data) return [];
+  return data.map(mapStudent);
+}
+
 export async function getAssignmentById(
   assignmentId: string
 ): Promise<Assignment | null> {
@@ -596,25 +642,27 @@ export async function getRecentSubmissionsForTeacher(
   const assignmentIds = assignments.map((a) => a.id);
   if (assignmentIds.length === 0) return [];
 
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("submissions")
-    .select("*")
-    .in("assignment_id", assignmentIds);
-  if (error || !data) return [];
+  const submissions = await getSubmissionsForAssignments(assignmentIds);
 
   const results: Array<Submission & { assignment?: Assignment; student?: Student }> =
     [];
+  const students = await getStudentsForClasses(
+    assignments.map((assignment) => assignment.class_id)
+  );
+  const studentsById = new Map(students.map((student) => [student.id, student]));
 
-  for (const submission of data.map(mapSubmission)) {
+  for (const submission of submissions) {
     const submittedAt = submission.submitted_at || submission.created_at;
-    if (new Date(submittedAt).getTime() < cutoff || !submission.answer.trim()) {
+    if (
+      new Date(submittedAt).getTime() < cutoff ||
+      (!submission.answer.trim() && (submission.attachment_urls?.length ?? 0) === 0)
+    ) {
       continue;
     }
     results.push({
       ...submission,
       assignment: assignments.find((a) => a.id === submission.assignment_id),
-      student: (await getStudentById(submission.student_id)) ?? undefined,
+      student: studentsById.get(submission.student_id),
     });
   }
 
@@ -635,13 +683,20 @@ export async function getClassSubmissionStats(classId: string): Promise<{
 }> {
   const students = await getStudentsByClass(classId);
   const assignments = await getAssignmentsByClass(classId);
-  const stats = await Promise.all(
-    assignments.map(async (assignment) => {
-      const submissions = await getSubmissionsByAssignment(assignment.id);
-      const submitted = submissions.filter((s) => s.answer.trim()).length;
-      return { assignment, submitted, total: students.length };
-    })
-  );
+  const submissions = await getSubmissionsForAssignments(assignments.map((assignment) => assignment.id));
+  const submissionsByAssignment = new Map<string, Submission[]>();
+  for (const submission of submissions) {
+    const assignmentSubmissions = submissionsByAssignment.get(submission.assignment_id) ?? [];
+    assignmentSubmissions.push(submission);
+    submissionsByAssignment.set(submission.assignment_id, assignmentSubmissions);
+  }
+  const stats = assignments.map((assignment) => ({
+    assignment,
+    submitted: (submissionsByAssignment.get(assignment.id) ?? []).filter(
+      (submission) => Boolean(submission.answer.trim()) || (submission.attachment_urls?.length ?? 0) > 0
+    ).length,
+    total: students.length,
+  }));
   return { totalStudents: students.length, assignmentStats: stats };
 }
 
@@ -668,11 +723,10 @@ export async function getClassAnalytics(classId: string): Promise<{
       : 0;
 
   const totalPossible = students.length * assignments.length;
-  let totalSubmitted = 0;
-  for (const assignment of assignments) {
-    const submissions = await getSubmissionsByAssignment(assignment.id);
-    totalSubmitted += submissions.filter((s) => s.answer.trim()).length;
-  }
+  const submissions = await getSubmissionsForAssignments(assignments.map((assignment) => assignment.id));
+  const totalSubmitted = submissions.filter(
+    (submission) => Boolean(submission.answer.trim()) || (submission.attachment_urls?.length ?? 0) > 0
+  ).length;
 
   return {
     averageGrade,

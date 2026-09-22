@@ -82,6 +82,10 @@ export async function getStudentById(studentId: string): Promise<Student | null>
   return supabase.getStudentById(studentId);
 }
 
+export async function getSubmissionRateForTeacher(teacherId: string): Promise<number> {
+  return supabase.getSubmissionRateForTeacher(teacherId);
+}
+
 export async function addStudent(student: Student): Promise<boolean> {
   return supabase.addStudent(student);
 }
