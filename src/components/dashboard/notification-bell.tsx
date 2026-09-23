@@ -24,6 +24,7 @@ export function NotificationBell({ initialNotifications }: { initialNotification
   const [notifications, setNotifications] = useState(initialNotifications);
   const [open, setOpen] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [pendingNotificationId, setPendingNotificationId] = useState<string | null>(null);
   const bellRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
   const unreadCount = notifications.filter((notification) => !notification.read_at).length;
@@ -48,19 +49,19 @@ export function NotificationBell({ initialNotifications }: { initialNotification
     };
   }, [open]);
 
-  const handleRead = (notification: InAppNotification) => {
+  const handleRead = async (notification: InAppNotification) => {
     if (!notification.read_at) {
       const previousNotifications = notifications;
       setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item));
       setActionError("");
-      startTransition(() => {
-        void markNotificationRead(notification.id).then((success) => {
-          if (!success) {
-            setNotifications(previousNotifications);
-            setActionError("לא ניתן לעדכן את ההתראה. נסו שוב.");
-          }
-        });
-      });
+      setPendingNotificationId(notification.id);
+      const success = await markNotificationRead(notification.id);
+      setPendingNotificationId(null);
+      if (!success) {
+        setNotifications(previousNotifications);
+        setActionError("לא ניתן לעדכן את ההתראה. נסו שוב.");
+        return;
+      }
     }
     setOpen(false);
     router.push(notification.href);
@@ -100,7 +101,7 @@ export function NotificationBell({ initialNotifications }: { initialNotification
               {isPending && notifications.length === 0 && <div className="flex items-center justify-center gap-2 p-8 text-sm text-slate-500"><Loader2 className="size-4 animate-spin" /> טוען התראות...</div>}
               {!isPending && notifications.length === 0 && <div className="p-8 text-center"><span className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"><Bell className="size-5" /></span><p className="mt-3 text-sm font-bold text-slate-700">אין התראות חדשות</p><p className="mt-1 text-xs text-slate-500">נעדכן אותך כאן כשיהיה משהו חדש.</p></div>}
               {notifications.map((notification) => (
-                <button type="button" key={notification.id} onClick={() => handleRead(notification)} className={cn("flex w-full gap-3 rounded-2xl p-3 text-right transition hover:bg-slate-50", !notification.read_at && "bg-cyan-50/70")}>
+                <button type="button" key={notification.id} onClick={() => void handleRead(notification)} disabled={isPending || pendingNotificationId !== null} className={cn("flex w-full gap-3 rounded-2xl p-3 text-right transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70", !notification.read_at && "bg-cyan-50/70")}>
                   <span className={cn("mt-1 flex size-8 shrink-0 items-center justify-center rounded-xl", notification.read_at ? "bg-slate-100 text-slate-400" : "bg-cyan-600 text-white")}>
                     {notification.read_at ? <Check className="size-4" /> : <Bell className="size-4" />}
                   </span>

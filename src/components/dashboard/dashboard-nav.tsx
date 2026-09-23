@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ClipboardCheck, LayoutDashboard, Menu, Settings2, Users, X } from "lucide-react";
+import { BookOpen, ClipboardCheck, ClipboardList, LayoutDashboard, Menu, Settings2, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ const teacherLinks = [
   { href: "/dashboard", label: "סקירה", icon: LayoutDashboard },
   { href: "/classes", label: "הכיתות שלי", icon: Users },
   { href: "/assignments", label: "משימות", icon: ClipboardCheck },
+  { href: "/review", label: "בדיקת הגשות", icon: ClipboardList },
   { href: "/teacher/resources", label: "ספרייה", icon: BookOpen },
 ];
 
