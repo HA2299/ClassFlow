@@ -22,9 +22,10 @@ export function ClassPulse() {
     setError("");
     try {
       const response = await fetch("/api/ai/class-pulse", { method: "POST" });
-      const data = (await response.json()) as { pulse?: Pulse; error?: string };
+      const data = (await response.json()) as { pulse?: Pulse; error?: string; warning?: string };
       if (!response.ok || !data.pulse) throw new Error(data.error || "לא ניתן ליצור תמונת מצב");
       setPulse(data.pulse);
+      setError(data.warning ?? "");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "לא ניתן ליצור תמונת מצב");
     } finally {

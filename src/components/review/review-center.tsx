@@ -72,15 +72,23 @@ export function ReviewCenter({
   const [aiDraft, setAiDraft] = useState("");
   const [aiReady, setAiReady] = useState(false);
 
-  const filteredSubmissions = useMemo(() => submissions
-    .filter((item) => `${item.studentName} ${item.assignmentName} ${item.className}`.toLowerCase().includes(query.toLowerCase()))
-    .filter((item) => status === "all" || (status === "pending" ? item.status !== "graded" : item.status === "graded"))
-    .sort((a, b) => sort === "name" ? a.studentName.localeCompare(b.studentName, "he") : sort === "oldest" ? a.submittedAt.localeCompare(b.submittedAt) : b.submittedAt.localeCompare(a.submittedAt)), [query, sort, status, submissions]);
+  const { filteredSubmissions, selected, selectedIndex, pendingCount, attentionItems } = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("he");
+    const pending = submissions.filter((item) => item.status !== "graded");
+    const filtered = submissions
+      .filter((item) => !normalizedQuery || `${item.studentName} ${item.assignmentName} ${item.className}`.toLocaleLowerCase("he").includes(normalizedQuery))
+      .filter((item) => status === "all" || (status === "pending" ? item.status !== "graded" : item.status === "graded"));
 
-  const selected = submissions.find((item) => item.id === selectedId) ?? filteredSubmissions[0];
-  const selectedIndex = selected ? filteredSubmissions.findIndex((item) => item.id === selected.id) : -1;
-  const pendingCount = submissions.filter((item) => item.status !== "graded").length;
-  const attentionItems = submissions.filter((item) => item.status !== "graded").slice(0, 3);
+    const sorted = [...filtered].sort((a, b) => sort === "name" ? a.studentName.localeCompare(b.studentName, "he") : sort === "oldest" ? a.submittedAt.localeCompare(b.submittedAt) : b.submittedAt.localeCompare(a.submittedAt));
+    const selectedSubmission = submissions.find((item) => item.id === selectedId) ?? sorted[0];
+    return {
+      filteredSubmissions: sorted,
+      selected: selectedSubmission,
+      selectedIndex: selectedSubmission ? sorted.findIndex((item) => item.id === selectedSubmission.id) : -1,
+      pendingCount: pending.length,
+      attentionItems: pending.slice(0, 3),
+    };
+  }, [query, selectedId, sort, status, submissions]);
 
   function selectSubmission(id: string) {
     setSelectedId(id);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth/session";
-import { generateGeminiJson } from "@/lib/ai/gemini";
+import { generateOpenRouterJson, getOpenRouterErrorMessage } from "@/lib/ai/gemini";
 
 type WizardStep = "idea" | "edit" | "finalize";
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "יש להזין רעיון למשימה" }, { status: 400 });
   }
 
-  if (!process.env.GEMINI_API_KEY) {
+  if (!process.env.OPENROUTER_API_KEY) {
     const idea = body.idea.trim();
     return NextResponse.json({
       draft: {
@@ -57,10 +57,10 @@ export async function POST(request: Request) {
       : JSON.stringify(body.draft);
 
   try {
-    const draft = await generateGeminiJson<Record<string, string>>(`${instruction}\n\n${userContent}`);
-    if (!draft) return NextResponse.json({ error: "GEMINI_API_KEY חסר" }, { status: 503 });
+    const draft = await generateOpenRouterJson<Record<string, string>>(`${instruction}\n\n${userContent}`);
+    if (!draft) return NextResponse.json({ error: "OPENROUTER_API_KEY חסר" }, { status: 503 });
     return NextResponse.json({ draft });
-  } catch {
-    return NextResponse.json({ error: "שגיאת Gemini" }, { status: 502 });
+  } catch (error) {
+    return NextResponse.json({ error: `שגיאת OpenRouter: ${getOpenRouterErrorMessage(error)}` }, { status: 502 });
   }
 }
