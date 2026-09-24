@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth/session";
 import { getDashboardData } from "@/app/actions/dashboard";
+import { generateGeminiJson } from "@/lib/ai/gemini";
 
 type PulseResponse = {
   score: number;
@@ -67,6 +68,16 @@ export async function POST() {
   }
 
   const dashboard = await getDashboardData(profile.id);
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const pulse = await generateGeminiJson<PulseResponse>(`אתה יועץ פדגוגי למורה. נתח את נתוני הכיתות והחזר JSON בעברית בלבד עם השדות: score (מספר 0-100), headline (כותרת קצרה), summary (סיכום), brightSpot (נקודת חוזק), actions (מערך של 3 פעולות קצרות). היה מעשי, לא שיפוטי, ואל תמציא נתונים.\n\nנתוני הכיתות:\n${JSON.stringify({ classCount: dashboard.classCount, atRiskStudents: dashboard.atRiskStudents.length, activeAssignments: dashboard.activeAssignments.length, submissionRate: dashboard.submissionRate, recentSubmissions: dashboard.recentSubmissions.length })}`, { maxOutputTokens: 500 });
+      if (pulse && typeof pulse.score === "number" && Array.isArray(pulse.actions)) {
+        return NextResponse.json({ pulse, source: "gemini" });
+      }
+    } catch {
+      // Keep the local insight available when the free API quota is unavailable.
+    }
+  }
   const pulse = buildLocalPulse(dashboard);
   return NextResponse.json({ pulse, source: "local" });
 }

@@ -128,21 +128,21 @@ export default async function AssignmentDetailPage({
           )}
 
           <Card className="border-0 bg-transparent p-0 shadow-none">
-            <CardHeader className="rounded-[1.75rem] border border-slate-200/70 bg-white/70 px-5 py-5 shadow-[0_14px_35px_rgba(15,23,42,0.04)] sm:px-6">
+            <CardHeader className="relative mb-5 rounded-2xl border border-slate-200/80 bg-white/95 px-4 py-4 shadow-[0_12px_28px_rgba(15,23,42,0.1)] sm:px-5">
               <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
                 <div>
-                  <CardTitle className="text-2xl font-black text-slate-950">מרכז הבדיקה</CardTitle>
+                  <CardTitle className="text-xl font-black text-slate-950">מרכז הבדיקה</CardTitle>
                   <CardDescription className="mt-1">עברו על ההגשות, תנו ציון והשאירו משוב במקום אחד.</CardDescription>
                 </div>
                 <span className="w-fit rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">{ungradedCount} ממתינות לבדיקה</span>
               </div>
-              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+              <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/80 p-2.5">
                 <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600"><span>התקדמות בדיקה</span><span>{gradedCount}/{submittedCount} הגשות</span></div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-gradient-to-l from-emerald-500 to-cyan-500 transition-all" style={{ width: `${submittedCount > 0 ? Math.round((gradedCount / submittedCount) * 100) : 0}%` }} /></div>
                 <p className="mt-2 text-[11px] text-slate-500">{pendingCount > 0 ? `${pendingCount} תלמידים עדיין לא הגישו.` : "כל התלמידים הגישו את המשימה."}</p>
               </div>
             </CardHeader>
-            <CardContent className="space-y-5 px-0">
+            <CardContent className="space-y-3 px-0 pt-0">
               {submissions.length > 0 ? (
                 submissions.map((submission) => {
                   const student = students.find((s) => s.id === submission.student_id);
@@ -155,10 +155,10 @@ export default async function AssignmentDetailPage({
                         : "הוגש";
 
                   return (
-                    <details key={submission.id} open={submission.status !== "graded"} className="submission-card group overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.07)]">
-                      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-l from-slate-50 to-white px-5 py-4 transition hover:bg-cyan-50/30">
+                    <details id={`submission-${submission.id}`} data-pending={submission.status !== "graded" ? "true" : "false"} key={submission.id} open={submission.status !== "graded"} className="submission-card group overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_10px_26px_rgba(15,23,42,0.06)]">
+                      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-gradient-to-l from-slate-50 to-white px-4 py-3 transition hover:bg-cyan-50/30">
                         <div className="flex items-center gap-3">
-                          <span className="flex size-11 items-center justify-center rounded-2xl bg-slate-950 text-lg font-black text-cyan-300">{(student?.name ?? "תלמיד").charAt(0)}</span>
+                          <span className="flex size-9 items-center justify-center rounded-xl bg-slate-950 text-base font-black text-cyan-300">{(student?.name ?? "תלמיד").charAt(0)}</span>
                           <div>
                           <p className="font-black text-slate-900">{student?.name ?? "תלמיד"}</p>
                           <p className="text-xs text-muted-foreground">
@@ -180,10 +180,10 @@ export default async function AssignmentDetailPage({
                         <span className="flex items-center gap-1 text-xs font-bold text-slate-400"><ListChecks className="size-3.5" /> <span className="hidden sm:inline">פתיחה לבדיקה</span><ChevronDown className="submission-chevron size-4" /></span>
                       </summary>
 
-                      <div className="px-5 pt-5"><p className="mb-2 text-[10px] font-bold tracking-[0.18em] text-slate-400">תשובת התלמיד</p><p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{submission.answer || "לא נכתבה תשובה"}</p></div>
+                      <div className="px-4 pt-4"><p className="mb-1 text-[10px] font-bold tracking-[0.18em] text-slate-400">תשובת התלמיד</p><p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{submission.answer || "לא נכתבה תשובה"}</p></div>
 
                       {submission.attachment_urls && submission.attachment_urls.length > 0 && (
-                        <div className="mx-5 mt-4 rounded-2xl border border-dashed border-cyan-200 bg-cyan-50/50 p-3">
+                        <div className="mx-4 mt-3 rounded-xl border border-dashed border-cyan-200 bg-cyan-50/50 p-2.5">
                           <p className="text-[10px] font-bold tracking-wide text-cyan-700">
                             קבצים מצורפים
                           </p>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth/session";
+import { generateGeminiJson } from "@/lib/ai/gemini";
 
 type WizardStep = "idea" | "edit" | "finalize";
 
@@ -31,9 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "יש להזין רעיון למשימה" }, { status: 400 });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
+  if (!process.env.GEMINI_API_KEY) {
     const idea = body.idea.trim();
     return NextResponse.json({
       draft: {
@@ -47,7 +46,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const systemPrompt =
+  const instruction =
     body.step === "idea"
       ? "צור טיוטת משימה לכיתה בפורמט JSON עם השדות: name, description, difficulty (easy|medium|hard), type (homework|quiz|project|exam). ענה בעברית."
       : "שפר את טיוטת המשימה לפי בקשת המורה. החזר JSON עם name, description, difficulty, type.";
@@ -57,37 +56,11 @@ export async function POST(request: Request) {
       ? `רעיון למשימה: ${body.idea}\nכיתה: ${body.classContext ?? ""}`
       : JSON.stringify(body.draft);
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
-      ],
-      max_tokens: 800,
-    }),
-  });
-
-  if (!res.ok) {
-    return NextResponse.json({ error: "שגיאת AI" }, { status: 502 });
-  }
-
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
   try {
-    const draft = JSON.parse(
-      data.choices?.[0]?.message?.content ?? "{}"
-    ) as Record<string, string>;
+    const draft = await generateGeminiJson<Record<string, string>>(`${instruction}\n\n${userContent}`);
+    if (!draft) return NextResponse.json({ error: "GEMINI_API_KEY חסר" }, { status: 503 });
     return NextResponse.json({ draft });
   } catch {
-    return NextResponse.json({ error: "פורמט תשובה לא תקין" }, { status: 502 });
+    return NextResponse.json({ error: "שגיאת Gemini" }, { status: 502 });
   }
 }

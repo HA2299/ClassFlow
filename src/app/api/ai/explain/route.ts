@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth/session";
+import { generateGeminiText } from "@/lib/ai/gemini";
 
 export async function POST(request: Request) {
   const profile = await getSessionProfile();
@@ -17,46 +18,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "שאלה נדרשת" }, { status: 400 });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
+  if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({
-      answer: `מענה כללי ללא OpenAI\n\nשאלה: ${body.question.trim()}\n\nהסבר לשלבים:\n1. קרא את השאלה בעיון\n2. זהה את הנתונים והנעלם\n3. בחר שיטת פתרון מתאימה\n4. בדוק את התשובה\n\nטיפ: כשתגדיר OPENAI_API_KEY, תקבל הסבר מותאם אישית.`,
+      answer: `מענה כללי ללא Gemini\n\nשאלה: ${body.question.trim()}\n\nהסבר לשלבים:\n1. קרא את השאלה בעיון\n2. זהה את הנתונים והנעלם\n3. בחר שיטת פתרון מתאימה\n4. בדוק את התשובה\n\nטיפ: כשתגדיר GEMINI_API_KEY, תקבל הסבר מותאם אישית.`,
     });
   }
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "אתה עוזר למידה לתלמידי בית ספר. הסבר בעברית, בצורה ברורה, בשלבים, בלי לתת תשובה מוכנה לשאלות שיעורי בית — הנחה לחשוב.",
-        },
-        {
-          role: "user",
-          content: `שם התלמיד: ${body.studentName ?? "תלמיד"}\nשאלה: ${body.question}`,
-        },
-      ],
-      max_tokens: 600,
-    }),
-  });
-
-  if (!res.ok) {
-    return NextResponse.json({ error: "שגיאת AI" }, { status: 502 });
+  try {
+    const answer = await generateGeminiText(`אתה עוזר למידה לתלמידי בית ספר. הסבר בעברית, בצורה ברורה ובשלבים, בלי לתת תשובה מוכנה לשאלת שיעורי בית. הנחה את התלמיד לחשוב.\n\nשם התלמיד: ${body.studentName ?? "תלמיד"}\nשאלה: ${body.question}`, { maxOutputTokens: 600 });
+    return NextResponse.json({ answer: answer ?? "לא התקבלה תשובה" });
+  } catch {
+    return NextResponse.json({ error: "שגיאת Gemini" }, { status: 502 });
   }
-
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
-  return NextResponse.json({
-    answer: data.choices?.[0]?.message?.content ?? "לא התקבלה תשובה",
-  });
 }
