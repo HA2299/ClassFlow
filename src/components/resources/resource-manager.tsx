@@ -29,6 +29,7 @@ export function ResourceManager({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
@@ -140,13 +141,10 @@ export function ResourceManager({
         </Card>
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.25fr]">
-        <Card className="border-0 bg-white/80 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-          <CardHeader>
-            <CardTitle className="text-xl text-slate-900">העלאת חומר עזר</CardTitle>
-            <CardDescription>הוסף סיכום, מצגת, נוסחאות או קישור שניתן לשתף עם הכיתה.</CardDescription>
-          </CardHeader>
-          <CardContent>
+      <div className="space-y-5">
+        <Card className="surface-card bg-white/80 backdrop-blur-xl">
+          <CardHeader className="flex flex-row items-center justify-between gap-3"><div><CardTitle className="text-xl text-slate-900">העלאת חומר עזר</CardTitle><CardDescription>הוסף סיכום, מצגת, נוסחאות או קישור שניתן לשתף עם הכיתה.</CardDescription></div><Button type="button" variant={isUploadOpen ? "outline" : "default"} size="sm" onClick={() => setIsUploadOpen((open) => !open)}>{isUploadOpen ? "סגירת טופס" : "העלאת חומר"}</Button></CardHeader>
+          {isUploadOpen && <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {classes.length > 0 && (
                 <div className="space-y-2">
@@ -243,10 +241,10 @@ export function ResourceManager({
 
               <Button type="submit" disabled={isSubmitting} className="w-full"><FileUp className="size-4" />{isSubmitting ? "מעלה..." : "העלה חומר"}</Button>
             </form>
-          </CardContent>
+          </CardContent>}
         </Card>
 
-        <Card className="border-0 bg-white/80 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+        <Card className="surface-card bg-white/80 backdrop-blur-xl">
           <CardHeader>
             <CardTitle className="text-xl text-slate-900">חומרי עזר שהועלו</CardTitle>
             <CardDescription>רשימת משאבים פעילים שזמינים לתלמידים.</CardDescription>

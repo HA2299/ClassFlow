@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { resourceTypeLabels, resourceTypeOptions, type ResourceItem } from "@/lib/resources";
@@ -27,9 +28,9 @@ export function ResourceBrowser({ initialItems }: { initialItems: ResourceItem[]
 
   return (
     <div className="space-y-6">
-      <Card className="border-0 bg-slate-950 text-white shadow-[0_24px_60px_rgba(15,23,42,0.15)]">
+      <Card className="border-0 bg-[linear-gradient(135deg,#0f172a,#1d4ed8,#0f766e)] text-white shadow-[0_24px_60px_rgba(15,23,42,0.15)]">
         <CardHeader>
-          <div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-300"><Sparkles className="size-5" /></span><div><CardTitle className="text-xl text-white">מרכז חומרי עזר</CardTitle><CardDescription className="mt-1 text-slate-300">סיכומים, מצגות, נוסחאות וקישורים שימושיים לכל הכיתה.</CardDescription></div></div>
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-300"><Sparkles className="size-5" /></span><div><CardTitle className="text-xl text-white">מרכז חומרי עזר</CardTitle><CardDescription className="mt-1 text-slate-300">סיכומים, מצגות, נוסחאות וקישורים שימושיים לכל הכיתה.</CardDescription></div></div><Link href="/student" className="text-sm font-bold text-cyan-100 hover:text-white">חזרה לדשבורד</Link></div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-[1.2fr_0.8fr]">

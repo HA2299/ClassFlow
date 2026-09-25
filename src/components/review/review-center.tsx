@@ -123,7 +123,7 @@ export function ReviewCenter({
 
   return (
     <div className="space-y-5">
-      <section className="review-hero relative isolate overflow-hidden rounded-[2rem] p-5 text-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] sm:p-7">
+      <section className="page-banner review-hero relative isolate overflow-hidden rounded-[2rem] p-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] sm:p-6">
         <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div className="max-w-2xl">
             <Link href="/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-300 hover:text-white"><ArrowUpLeft className="size-4" /> חזרה לסקירה</Link>

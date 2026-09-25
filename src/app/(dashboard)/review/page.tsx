@@ -1,6 +1,6 @@
 import { requireTeacher } from "@/lib/auth/session";
 import { getTeacherAssignmentsSummary } from "@/app/actions/assignments";
-import { getClassById, getGradeBySubmission, getStudentsByClass, getSubmissionsByAssignment } from "@/lib/data/store";
+import { getClassById, getGradesBySubmissions, getStudentsByClass, getSubmissionsByAssignment } from "@/lib/data/store";
 import { ReviewCenter, type ReviewSubmission } from "@/components/review/review-center";
 
 export default async function ReviewPage() {
@@ -16,11 +16,8 @@ export default async function ReviewPage() {
   const reviewResults = await Promise.all(
     assignments.map(async (assignment) => {
       const submissions = await getSubmissionsByAssignment(assignment.id);
-      const gradeEntries = await Promise.all(
-        submissions.map(async (submission) => [submission.id, await getGradeBySubmission(submission.id)] as const)
-      );
-      const gradeMap = new Map(gradeEntries);
-      const grades = gradeEntries.flatMap(([, grade]) => (grade ? [grade] : []));
+      const grades = await getGradesBySubmissions(submissions.map((submission) => submission.id));
+      const gradeMap = new Map(grades.map((grade) => [grade.submission_id, grade]));
       const submitted = submissions.filter(
         (submission) => Boolean(submission.answer.trim()) || (submission.attachment_urls?.length ?? 0) > 0
       ).length;

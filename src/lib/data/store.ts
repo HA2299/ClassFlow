@@ -82,6 +82,10 @@ export async function getStudentById(studentId: string): Promise<Student | null>
   return supabase.getStudentById(studentId);
 }
 
+export async function getStudentsByIds(studentIds: string[]): Promise<Student[]> {
+  return supabase.getStudentsByIds(studentIds);
+}
+
 export async function getSubmissionRateForTeacher(teacherId: string): Promise<number> {
   return supabase.getSubmissionRateForTeacher(teacherId);
 }
@@ -175,6 +179,12 @@ export async function getGradeBySubmission(
   submissionId: string
 ): Promise<Grade | null> {
   return supabase.getGradeBySubmission(submissionId);
+}
+
+export async function getGradesBySubmissions(
+  submissionIds: string[]
+): Promise<Grade[]> {
+  return supabase.getGradesBySubmissions(submissionIds);
 }
 
 export async function upsertGrade(grade: Grade): Promise<Grade | null> {

@@ -17,6 +17,8 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { AssignmentSubmissionCard } from "@/components/student/assignment-submission-card";
 import { ArrowLeft, CheckCircle2, Clock3, ListChecks, Sparkles, Target } from "lucide-react";
+import { AssignmentTimeline } from "@/components/student/assignment-timeline";
+import { getStudentResources } from "@/app/actions/resources";
 
 export default async function StudentAssignmentsPage() {
   const profile = await requireStudent();
@@ -30,6 +32,7 @@ export default async function StudentAssignmentsPage() {
   const assignments = await getClassAssignments(student.class_id);
   const grades = await getStudentGrades(student.id);
   const average = await getStudentAverage(student.id);
+  const resources = await getStudentResources(student.class_id);
 
   const sortedAssignments = [...assignments].sort(
     (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
@@ -116,6 +119,7 @@ export default async function StudentAssignmentsPage() {
         </section>
       )}
 
+      <div className="flex justify-end"><AssignmentTimeline assignments={sortedAssignments} submissions={submissionsByAssignment} /></div>
       <Card className="border-0 bg-white/80 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
         <CardHeader>
           <div className="flex items-end justify-between gap-3"><div><CardTitle className="text-xl font-black text-slate-900">כל המשימות</CardTitle><CardDescription className="mt-1">התחילו מהמשימה הקרובה ביותר והתקדמו בקצב שלכם.</CardDescription></div><span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">{submittedCount}/{sortedAssignments.length} הוגשו</span></div>
@@ -129,10 +133,11 @@ export default async function StudentAssignmentsPage() {
                 student={student}
                 existingSubmission={submissionsByAssignment[index]}
                 grade={grades.find((grade) => grade.assignment_id === assignment.id)}
+                resources={resources}
               />
             ))
           ) : (
-            <p className="text-sm text-slate-500">אין משימות כרגע.</p>
+            <div className="rounded-2xl border border-dashed border-cyan-200 bg-cyan-50/60 p-6 text-center"><p className="font-bold text-slate-800">אין משימות כרגע</p><p className="mt-1 text-sm text-slate-500">זה זמן טוב לעבור על חומרי העזר ולחזק נושא שמאתגר אתכם.</p><Link href="/student/resources" className="mt-3 inline-flex text-sm font-bold text-cyan-700 hover:underline">למרכז חומרי העזר <ArrowLeft className="size-4" /></Link></div>
           )}
         </CardContent>
       </Card>

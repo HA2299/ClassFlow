@@ -10,10 +10,13 @@ import {
 
 import {
   getActiveAssignmentsForTeacher,
+  getAssignmentById,
   getAtRiskStudentsForTeacher,
   findProfileById,
   getStudentById,
   getStudentsByClass,
+  getSubmissionsByAssignment,
+  getClassByIdForTeacher,
 } from "@/lib/data/store";
 
 import { createClient } from "@/lib/supabase/server";
@@ -328,6 +331,61 @@ export async function sendAssignmentNotifications(
     sent,
     skipped: false,
   };
+}
+
+export async function sendMissingSubmissionReminders(
+  classId: string,
+  assignmentId: string
+): Promise<{ sent: number; skipped: number; error?: string }> {
+  const profile = await (await import("@/lib/auth/session")).getSessionProfile();
+  if (!profile || (profile.role !== "teacher" && profile.role !== "institution_admin" && profile.role !== "system_admin")) {
+    return { sent: 0, skipped: 0, error: "אין הרשאה" };
+  }
+
+  if (!(await getClassByIdForTeacher(classId, profile.id))) {
+    return { sent: 0, skipped: 0, error: "אין הרשאה לכיתה זו" };
+  }
+
+  const [assignment, students, submissions] = await Promise.all([
+    getAssignmentById(assignmentId),
+    getStudentsByClass(classId),
+    getSubmissionsByAssignment(assignmentId),
+  ]);
+  if (!assignment || assignment.class_id !== classId) return { sent: 0, skipped: 0, error: "משימה לא נמצאה" };
+
+  const submittedStudentIds = new Set(
+    submissions
+      .filter((submission) => Boolean(submission.answer.trim()) || (submission.attachment_urls?.length ?? 0) > 0)
+      .map((submission) => submission.student_id)
+  );
+  const missingStudents = students.filter((student) => !submittedStudentIds.has(student.id));
+  if (missingStudents.length === 0) return { sent: 0, skipped: 0 };
+
+  const hasBrevo = Boolean(process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL);
+  const recipientIds = await getStudentProfileIds(missingStudents.map((student) => student.id), profile.institution_id);
+  await createInAppNotifications({
+    institutionId: profile.institution_id,
+    recipientIds,
+    type: "assignment",
+    title: "תזכורת להגשה",
+    message: `תזכורת: ${assignment.name} ממתינה להגשה`,
+    href: "/student/assignments",
+  });
+
+  if (!hasBrevo) return { sent: 0, skipped: missingStudents.length };
+
+  const results = await Promise.all(missingStudents.map(async (student) => {
+    const recipient = await resolveStudentRecipient(student);
+    if (!recipient.email) return false;
+    return sendEmail({
+      to: recipient.email,
+      subject: `תזכורת להגשה: ${assignment.name}`,
+      html: templateSubmissionReminder(recipient.name, assignment.name, new Date(assignment.due_date).toLocaleDateString("he-IL")),
+    });
+  }));
+
+  const sent = results.filter(Boolean).length;
+  return { sent, skipped: missingStudents.length - sent };
 }
 
 // ---------------------------------------------------------

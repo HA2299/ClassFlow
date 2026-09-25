@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitAssignmentSolution } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import type { Assignment, Grade, Student, Submission } from "@/types/database";
-import { Award, MessageSquareText } from "lucide-react";
+import type { ResourceItem } from "@/lib/resources";
+import { Award, FileText, Lightbulb, MessageSquareText, Sparkles } from "lucide-react";
 
 interface AssignmentSubmissionCardProps {
   assignment: Assignment;
   student: Student;
   existingSubmission?: Submission;
   grade?: Grade;
+  resources?: ResourceItem[];
 }
 
 function SubmitButton({ existingSubmission }: { existingSubmission?: Submission }) {
@@ -35,14 +37,31 @@ function formatStatus(status: Submission["status"]) {
   }
 }
 
+type SubmissionVersion = { answer: string; attachmentNames: string[]; savedAt: string };
+
 export function AssignmentSubmissionCard({
   assignment,
   student,
   existingSubmission,
   grade,
+  resources = [],
 }: AssignmentSubmissionCardProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [activeTab, setActiveTab] = useState<"response" | "feedback" | "attachments">("response");
+  const [versions, setVersions] = useState<SubmissionVersion[]>([]);
+  const [aiAnswer, setAiAnswer] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+
+  useEffect(() => {
+    if (!existingSubmission) return;
+    try {
+      const stored = window.localStorage.getItem(`classflow-submission-versions-${assignment.id}`);
+      setVersions(stored ? (JSON.parse(stored) as SubmissionVersion[]) : []);
+    } catch {
+      setVersions([]);
+    }
+  }, [assignment.id, existingSubmission]);
 
   const handleSubmit = async (formData: FormData) => {
     formData.append("assignmentId", assignment.id);
@@ -57,8 +76,28 @@ export function AssignmentSubmissionCard({
     }
 
     setError("");
+    if (existingSubmission) {
+      const version: SubmissionVersion = { answer: existingSubmission.answer, attachmentNames: existingSubmission.attachment_names ?? [], savedAt: new Date().toISOString() };
+      const nextVersions = [version, ...versions].slice(0, 5);
+      setVersions(nextVersions);
+      window.localStorage.setItem(`classflow-submission-versions-${assignment.id}`, JSON.stringify(nextVersions));
+    }
     setSuccess(existingSubmission ? "ההגשה עודכנה בהצלחה" : "ההגשה נשמרה בהצלחה");
   };
+
+  async function askTutor(question: string) {
+    setAiLoading(true);
+    setAiAnswer("");
+    try {
+      const response = await fetch("/api/ai/explain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ studentName: student.name, question: `${question}\n\nמשימה: ${assignment.name}\nתשובה שלי:\n${existingSubmission?.answer ?? "עדיין לא הוגשה תשובה"}${grade?.feedback ? `\n\nמשוב המורה:\n${grade.feedback}` : ""}` }) });
+      const data = (await response.json()) as { answer?: string; error?: string };
+      setAiAnswer(response.ok ? data.answer ?? "לא התקבלה תשובה" : data.error ?? "לא ניתן לקבל הסבר");
+    } catch {
+      setAiAnswer("לא ניתן להתחבר לעוזר הלמידה כרגע.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   const dueDate = new Date(assignment.due_date);
   const isPastDue = dueDate < new Date();
@@ -75,6 +114,10 @@ export function AssignmentSubmissionCard({
         : assignment.type === "project"
           ? "פרויקט"
           : "מבחן";
+  const relatedResources = resources.filter((resource) => {
+    const haystack = `${resource.title} ${resource.description} ${resource.tags.join(" ")}`.toLocaleLowerCase("he");
+    return assignment.name.split(/\s+/).some((term) => term.length > 2 && haystack.includes(term.toLocaleLowerCase("he"))) || resource.tags.some((tag) => assignment.description?.toLocaleLowerCase("he").includes(tag.toLocaleLowerCase("he")));
+  }).slice(0, 2);
 
   return (
 <form
@@ -97,10 +140,7 @@ export function AssignmentSubmissionCard({
             </div>
             <h3 className="text-lg font-bold tracking-tight">{assignment.name}</h3>
           </div>
-          <div className="rounded-xl border border-white/15 bg-white/10 px-2.5 py-2 text-right backdrop-blur-sm">
-            <p className="text-[10px] text-sky-100">מועד הגשה</p>
-            <p className="mt-1 text-sm font-semibold">{dueDate.toLocaleDateString("he-IL", { dateStyle: "medium" })}</p>
-          </div>
+          <span className={`rounded-full border px-3 py-1.5 text-xs font-bold ${status ? status.className : isPastDue ? "border-rose-200/30 bg-rose-400/20 text-rose-100" : "border-amber-200/30 bg-amber-400/20 text-amber-100"}`}>{status?.label ?? (isPastDue ? "עבר מועד ההגשה" : "מועד קרוב")}</span>
         </div>
       </div>
 
@@ -123,16 +163,14 @@ export function AssignmentSubmissionCard({
               </div>
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">הוחזר עם משוב</span>
             </div>
-            {grade.feedback && (
-              <div className="mt-4 flex gap-2 border-t border-emerald-100 pt-3 text-sm leading-6 text-slate-700">
-                <MessageSquareText className="mt-1 size-4 shrink-0 text-emerald-600" />
-                <p><span className="font-bold">משוב מהמורה: </span>{grade.feedback}</p>
-              </div>
-            )}
+            {grade.feedback && <div className="mt-4 flex flex-wrap gap-2 border-t border-emerald-100 pt-3"><button type="button" onClick={() => setActiveTab("feedback")} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800"><MessageSquareText className="size-4" /> משוב מהמורה</button><button type="button" onClick={() => askTutor("הסבר לי את משוב המורה בצורה פשוטה") } className="inline-flex items-center gap-1.5 rounded-xl bg-violet-100 px-3 py-2 text-xs font-bold text-violet-800"><Sparkles className="size-4" /> הסבר AI</button><button type="button" onClick={() => askTutor("איך אפשר לשפר את התשובה שלי?")} className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-100 px-3 py-2 text-xs font-bold text-cyan-800"><Lightbulb className="size-4" /> איך להשתפר?</button></div>}
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2"><button type="button" onClick={() => setActiveTab("response")} className={`tab-indicator rounded-xl px-3 py-2 text-xs font-bold ${activeTab === "response" ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>התשובה שלי</button><button type="button" onClick={() => setActiveTab("feedback")} className={`tab-indicator rounded-xl px-3 py-2 text-xs font-bold ${activeTab === "feedback" ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>משוב מורה</button><button type="button" onClick={() => setActiveTab("attachments")} className={`tab-indicator rounded-xl px-3 py-2 text-xs font-bold ${activeTab === "attachments" ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:bg-slate-100"}`}>קבצים והיסטוריה</button></div>
+
+        {activeTab === "feedback" && <div className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4"><p className="flex items-center gap-2 text-sm font-black text-emerald-900"><MessageSquareText className="size-4" /> משוב מורה</p><p className="text-sm leading-7 text-slate-700">{grade?.feedback ?? "עדיין אין משוב מהמורה."}</p>{(aiAnswer || aiLoading) && <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm leading-6 text-violet-950">{aiLoading ? "העוזר מנתח את המשוב..." : aiAnswer}</div>}</div>}
+        {activeTab === "response" && <div className="space-y-2">
           <label htmlFor={`answer-${assignment.id}`} className="text-sm font-semibold text-slate-700">
             תשובת ההגשה
           </label>
@@ -144,9 +182,11 @@ export function AssignmentSubmissionCard({
             placeholder="הקלד את הפתרון, ההגשה או התוצרים שלך..."
             className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 shadow-inner outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
           />
-        </div>
+        </div>}
 
-        <div className="space-y-2">
+        {relatedResources.length > 0 && <div className="rounded-2xl border border-cyan-200 bg-cyan-50/60 p-3"><p className="flex items-center gap-2 text-xs font-black text-cyan-900"><Sparkles className="size-4" /> חומרי עזר מומלצים</p><div className="mt-2 flex flex-wrap gap-2">{relatedResources.map((resource) => <a key={resource.id} href={resource.url ?? "#"} target={resource.url ? "_blank" : undefined} rel={resource.url ? "noreferrer" : undefined} className="rounded-xl border border-cyan-100 bg-white px-3 py-2 text-xs font-bold text-cyan-800 hover:border-cyan-400">{resource.title}</a>)}</div></div>}
+
+        {activeTab === "attachments" && <div className="space-y-3">
           <label htmlFor={`attachment-${assignment.id}`} className="text-sm font-semibold text-slate-700">
             קבצים מצורפים
           </label>
@@ -182,7 +222,8 @@ export function AssignmentSubmissionCard({
               </ul>
             </div>
           )}
-        </div>
+          {versions.length > 0 && <div className="rounded-2xl border border-slate-200 bg-white p-3"><p className="mb-2 flex items-center gap-2 text-xs font-black text-slate-700"><FileText className="size-4" /> גרסאות קודמות</p><div className="space-y-2">{versions.map((version, index) => <details key={`${version.savedAt}-${index}`} className="rounded-xl bg-slate-50 p-2 text-xs"><summary className="cursor-pointer font-bold text-slate-700">גרסה {versions.length - index} · {new Date(version.savedAt).toLocaleString("he-IL")}</summary><p className="mt-2 whitespace-pre-wrap leading-6 text-slate-600">{version.answer || "ללא טקסט"}</p></details>)}</div></div>}
+        </div>}
 
         {error && <p className="text-sm text-red-600" aria-live="polite">{error}</p>}
         {success && <p className="text-sm text-emerald-600" aria-live="polite">{success}</p>}

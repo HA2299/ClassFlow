@@ -225,6 +225,19 @@ export async function getStudentById(studentId: string): Promise<Student | null>
   return mapStudent(data);
 }
 
+export async function getStudentsByIds(studentIds: string[]): Promise<Student[]> {
+  const ids = Array.from(new Set(studentIds.filter(Boolean)));
+  if (ids.length === 0) return [];
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("students")
+    .select("*")
+    .in("id", ids);
+  if (error || !data) return [];
+  return data.map(mapStudent);
+}
+
 export async function addStudent(student: Student): Promise<boolean> {
   const supabase = createClient();
 
@@ -556,6 +569,20 @@ export async function getGradeBySubmission(
     .maybeSingle();
   if (error || !data) return null;
   return mapGrade(data);
+}
+
+export async function getGradesBySubmissions(
+  submissionIds: string[]
+): Promise<Grade[]> {
+  if (submissionIds.length === 0) return [];
+
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("grades")
+    .select("*")
+    .in("submission_id", submissionIds);
+  if (error || !data) return [];
+  return data.map(mapGrade);
 }
 
 export async function upsertGrade(grade: Grade): Promise<Grade | null> {

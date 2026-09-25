@@ -62,16 +62,16 @@ export function DashboardNav({
 
   return (
     <div ref={navRef} className="relative">
-      <div className="hidden items-center gap-1 lg:flex">
+      <div className="nav-shell hidden items-center gap-1 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-1 lg:flex">
         {links.map(({ href, label, icon: Icon }) => (
           <Link key={href} href={href} className={cn("nav-link", isActive(href) && "nav-link-active")}>
-            <Icon className="size-4" />
+            <Icon className="size-3.5" />
             {label}
           </Link>
         ))}
         {isAdmin && (
           <Link href="/admin" className={cn("nav-link", isActive("/admin") && "nav-link-active")}>
-            <Settings2 className="size-4" />
+            <Settings2 className="size-3.5" />
             ניהול
           </Link>
         )}

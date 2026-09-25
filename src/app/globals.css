@@ -112,6 +112,22 @@
     @apply border border-white/60 bg-white/70 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl;
   }
 
+  .surface-card {
+    @apply border border-slate-200/80 shadow-[0_4px_12px_rgba(15,23,42,0.03)] transition-all duration-200;
+  }
+
+  .page-banner {
+    min-height: 13.5rem;
+  }
+
+  .row-action {
+    @apply transition-all duration-200 hover:bg-slate-50/90;
+  }
+
+  .tab-indicator {
+    transition: color 200ms ease, background-color 200ms ease, box-shadow 200ms ease;
+  }
+
   .soft-divider {
     @apply border border-slate-200/80;
   }
@@ -124,11 +140,19 @@
   }
 
   .nav-link {
-    @apply inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-950;
+    @apply inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-bold text-slate-500 transition-all duration-200 hover:bg-white hover:text-slate-950 hover:shadow-sm;
   }
 
   .nav-link-active {
-    @apply bg-slate-950 text-white shadow-lg shadow-slate-900/10 hover:bg-slate-950 hover:text-white;
+    @apply bg-slate-950 text-white shadow-[0_6px_16px_rgba(15,23,42,0.16)] hover:bg-slate-950 hover:text-white;
+  }
+
+  .teacher-navbar {
+    box-shadow: 0 8px 26px rgba(15, 23, 42, 0.06);
+  }
+
+  .nav-shell {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
 
   .mobile-nav-link {
@@ -164,6 +188,10 @@
 
   .review-hero {
     background: linear-gradient(135deg, #0f172a 0%, #164e63 58%, #0f766e 100%);
+  }
+
+  .page-banner {
+    min-height: 13.5rem;
   }
 
   .review-hero::after {

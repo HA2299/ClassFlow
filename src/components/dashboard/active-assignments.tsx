@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { ArrowUpLeft } from "lucide-react";
 import type { Assignment } from "@/types/database";
-import { getClassById } from "@/lib/data/store";
 import {
   Card,
   CardContent,
@@ -11,17 +11,11 @@ import {
 
 export async function ActiveAssignments({
   assignments,
+  classNames = {},
 }: {
   assignments: Assignment[];
+  classNames?: Record<string, string>;
 }) {
-  const classNames = new Map<string, string>();
-  await Promise.all(
-    Array.from(new Set(assignments.map((a) => a.class_id))).map(async (classId) => {
-      const classItem = await getClassById(classId);
-      if (classItem) classNames.set(classId, classItem.name);
-    })
-  );
-
   return (
     <Card className="border-0 bg-white/80 shadow-[0_18px_35px_rgba(15,23,42,0.06)] backdrop-blur-xl">
       <CardHeader>
@@ -34,20 +28,20 @@ export async function ActiveAssignments({
             {assignments.slice(0, 5).map((assignment) => (
               <li
                 key={assignment.id}
-                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm"
+                className="row-action flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm"
               >
                 <div>
                   <p className="font-semibold text-slate-800">{assignment.name}</p>
                   <p className="text-xs text-slate-500">
-                    {classNames.get(assignment.class_id) ?? "כיתה"} ·{" "}
+                    {classNames[assignment.class_id] ?? "כיתה"} ·{" "}
                     {new Date(assignment.due_date).toLocaleDateString("he-IL")}
                   </p>
                 </div>
                 <Link
                   href={`/classes/${assignment.class_id}/assignments/${assignment.id}`}
-                  className="rounded-full bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-500"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 transition hover:text-cyan-700"
                 >
-                  פתיחה
+                  פתיחה <ArrowUpLeft className="size-3.5" />
                 </Link>
               </li>
             ))}

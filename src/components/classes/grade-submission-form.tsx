@@ -56,6 +56,36 @@ export function GradeSubmissionForm({
     }
   }, [state, submissionId]);
 
+  useEffect(() => {
+    function handleKeyboardShortcut(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      const isEditable = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      const currentCard = document.getElementById(`submission-${submissionId}`);
+      const activeCard = document.activeElement?.closest("details[data-pending='true']");
+      const isInsideCurrentCard = currentCard?.contains(document.activeElement);
+      if (event.ctrlKey && event.key === "Enter") {
+        if (!isInsideCurrentCard) return;
+        event.preventDefault();
+        currentCard?.querySelector("form")?.requestSubmit();
+        return;
+      }
+      if (isEditable || (event.key !== "ArrowDown" && event.key !== "ArrowUp")) return;
+      if (!activeCard || activeCard !== currentCard) return;
+      if (!currentCard) return;
+      const cards = Array.from(document.querySelectorAll<HTMLElement>("details[data-pending='true']"));
+      const currentIndex = cards.indexOf(currentCard);
+      const nextCard = cards[currentIndex + (event.key === "ArrowDown" ? 1 : -1)];
+      if (!nextCard) return;
+      event.preventDefault();
+      nextCard.setAttribute("open", "");
+      nextCard.scrollIntoView({ behavior: "smooth", block: "center" });
+      nextCard.querySelector<HTMLInputElement>("input[type='number']")?.focus();
+    }
+
+    document.addEventListener("keydown", handleKeyboardShortcut);
+    return () => document.removeEventListener("keydown", handleKeyboardShortcut);
+  }, [submissionId]);
+
   return (
     <form action={action} className="mt-4 space-y-3 rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50/70 to-white p-3 shadow-inner shadow-cyan-900/[0.03] sm:p-4">
       <input type="hidden" name="submissionId" value={submissionId} />

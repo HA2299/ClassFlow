@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireTeacher } from "@/lib/auth/session";
 import { getDashboardData } from "@/app/actions/dashboard";
 import { getTeacherRecentClasses } from "@/app/actions/auth";
+import { getClassById } from "@/lib/data/store";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -20,10 +21,13 @@ export default async function DashboardPage() {
   const profile = await requireTeacher();
   const dashboard = await getDashboardData(profile.id);
   const recentClasses = await getTeacherRecentClasses(profile.id, 5);
+  const activeClassIds = Array.from(new Set(dashboard.activeAssignments.map((assignment) => assignment.class_id)));
+  const activeClasses = await Promise.all(activeClassIds.map((classId) => getClassById(classId)));
+  const activeClassNames = Object.fromEntries(activeClasses.filter((classItem): classItem is NonNullable<typeof classItem> => classItem !== null).map((classItem) => [classItem.id, classItem.name]));
 
   return (
-    <div className="space-y-8">
-      <section className="relative isolate overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(15,23,42,0.99),rgba(30,64,175,0.97)_52%,rgba(13,148,136,0.92))] p-6 text-white shadow-[0_30px_80px_rgba(15,23,42,0.2)] sm:p-8">
+    <div className="space-y-6">
+      <section className="page-banner relative isolate overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(15,23,42,0.99),rgba(30,64,175,0.97)_52%,rgba(13,148,136,0.92))] p-4 text-white shadow-[0_30px_80px_rgba(15,23,42,0.2)] sm:p-6">
         <div className="pointer-events-none absolute -left-16 -top-24 -z-10 size-72 rounded-full border border-cyan-200/15 shadow-[0_0_0_26px_rgba(103,232,249,0.035),0_0_0_52px_rgba(103,232,249,0.025)]" />
         <div className="pointer-events-none absolute -bottom-28 right-16 -z-10 size-64 rounded-full bg-cyan-300/10 blur-3xl" />
         <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
@@ -103,7 +107,7 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <AtRiskAlert students={dashboard.atRiskStudents} />
-        <ActiveAssignments assignments={dashboard.activeAssignments} />
+        <ActiveAssignments assignments={dashboard.activeAssignments} classNames={activeClassNames} />
       </div>
 
       <ClassPulse />

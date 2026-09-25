@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { AiHelper } from "@/components/student/ai-helper";
+import { LearningTools } from "@/components/student/learning-tools";
 
 export default async function StudentDashboardPage() {
   const profile = await requireStudent();
@@ -149,34 +150,8 @@ export default async function StudentDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
-        <Card className="border-0 bg-white/80 shadow-[0_18px_35px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-          <CardHeader>
-            <CardTitle className="text-xl text-slate-900">ריכוז מסכם</CardTitle>
-            <CardDescription>תצוגת מצב מהירה ולא עמוסה</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">משימות פתוחות</p>
-                <p className="mt-2 text-3xl font-black text-slate-900">{activeAssignments.length}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs text-slate-500">הגשות שבוצעו</p>
-                <p className="mt-2 text-3xl font-black text-slate-900">{submittedCount}</p>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-4">
-              <p className="text-xs text-blue-700">המלצה</p>
-              <p className="mt-2 text-sm text-slate-700">
-                אפשר להיכנס לעמוד המשימות לקבלת תצוגה מלאה ומסודרת של כל המשימות לפי תאריך.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <AiHelper studentName={profile.full_name} />
-      </div>
+      <LearningTools average={average} gradedCount={grades.length} />
+      <AiHelper studentName={profile.full_name} />
     </div>
   );
 }
