@@ -17,8 +17,11 @@ npm run dev
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
-OPENAI_API_KEY=...
-RESEND_API_KEY=...
+OPENROUTER_API_KEY=...
+NEXT_PUBLIC_SITE_URL=...
+BREVO_API_KEY=...
+BREVO_FROM_EMAIL=...
+BREVO_FROM_NAME=ClassFlow
 ```
 
 ## תכונות
@@ -30,7 +33,7 @@ RESEND_API_KEY=...
 - אשף AI ליצירת משימות (`/classes/[id]/assignments/new/wizard`)
 - עוזר AI לתלמיד (`/student`)
 - אנליטיקה + AI Insights
-- Resend (אופציונלי, `RESEND_API_KEY`)
+- Brevo לשליחת דוא״ל (אופציונלי, `BREVO_API_KEY` ו-`BREVO_FROM_EMAIL`)
 - `/parent`, `/admin`
 
 ## Supabase
@@ -45,51 +48,25 @@ npx supabase link --project-ref YOUR_REF
 npx supabase db push
 ```
 
-### טעינת נתוני דוגמה
+### משתמשי הדמו ונתוני הדוגמה
 
-הקובץ `supabase/seed.sql` אינו מופעל בזמן `npm run build` או `supabase db push`.
-משתמשי Auth חייבים להיווצר דרך Supabase Dashboard, ולא בכתיבה ישירה ל־`auth.users`.
+התחברות מתבצעת דרך כתובת האתר החיה וחשבונות שאומתו ב-Supabase Auth. חשבונות הדמו בנתוני הפרויקט:
 
-כדי לתקן את משתמשי הדמו ולטעון מחדש את כל נתוני הדוגמה בפרויקט המרוחק:
+| תפקיד | אימייל | סיסמה | מסך ראשי |
+|---|---|---|---|
+| מורה | `9455988@gmail.com` | `ClassFlow123!` | `/dashboard` |
+| תלמידה (Hodaya) | `hodaya2299@gmail.com` | `ClassFlow123!` | `/student` |
+| הורה | `parent.demo@classflow.demo` | `ClassFlow.Parent!2026` | `/parent` |
 
-1. ב־**Authentication > Users**, מחקו את משתמשי הדמו הישנים אם הם קיימים.
-2. בחרו **Add user > Create new user** וצרו את `9455988@gmail.com` עם הסיסמה `ClassFlow123!`; סמנו אימות אימייל.
-3. צרו באותה דרך את `hodaya2299@gmail.com` עם אותה סיסמה.
-4. פתחו **SQL Editor**, העתיקו את כל התוכן של `supabase/seed.sql` והריצו אותו פעם אחת.
-5. התנתקו מהאפליקציה, פתחו חלון גלישה בסתר והתחברו מחדש.
+חשבון התלמידה וההורה מקושרים לאותה רשומת תלמיד דמו. החשבונות והנתונים סינתטיים ומיועדים להצגה בלבד.
 
-אם ה־SQL Editor מציג את ההודעה `Create both demo users in Supabase Authentication before running this seed`, חזרו על שלבים 1-3.
+הקובץ `supabase/seed.sql` אינו מופעל בזמן `npm run build` או `supabase db push`. הוא **מוחק את הנתונים בטבלאות הציבוריות ומייצר מחדש** חמש כיתות, 175 תלמידים, 60 משימות, הגשות, ציונים, חומרי לימוד, תובנות, סימוני סיכון והתראות. אין להריץ אותו על סביבת ייצור או על מסד שמכיל נתונים שצריך לשמור.
 
-אם מחיקה דרך **Authentication > Users** נכשלת עם `Database error loading user`, הריצו ב־SQL Editor את השחזור הבא. הוא מוחק רק את שני משתמשי הדמו, וה־FK מנקה את הפרופילים המקושרים:
-
-```sql
-begin;
-
-delete from public.grades
-where graded_by in (
-	select id from auth.users
-	where email in ('9455988@gmail.com', 'hodaya2299@gmail.com')
-);
-
-delete from auth.users
-where email in ('9455988@gmail.com', 'hodaya2299@gmail.com');
-
-commit;
-```
-
-בדקו שהמחיקה הצליחה:
-
-```sql
-select email
-from auth.users
-where email in ('9455988@gmail.com', 'hodaya2299@gmail.com');
-```
-
-אם מוחזרות אפס שורות, צרו מחדש את שני המשתמשים דרך **Authentication > Users > Add user**, עם הסיסמה `ClassFlow123!` ו־**Auto Confirm User**, ואז הריצו את `supabase/seed.sql`.
+ליצירת נתוני הדמו מחדש, ודאו שב-Supabase **Authentication > Users** קיימים שלושת החשבונות שלמעלה ומסומנים כמאומתים. לאחר מכן הריצו את תוכן `supabase/seed.sql` ב-SQL Editor של פרויקט הדמו. אם יצרתם חשבון מחדש, השתמשו בסיסמה שמופיעה בטבלה או עדכנו אותה גם ב-Supabase Auth.
 
 ### הסרת המורה `9455988@gmail.com`
 
-כדי למחוק את המורה ואת הכיתות, המשימות, התלמידים, ההגשות, הציונים, הסיכונים, המשאבים וההתראות שבבעלותו בלבד, הריצו את כל הקובץ `supabase/remove-teacher-9455988.sql` ב־SQL Editor. הקובץ אינו מוחק תלמידים שמשתמשים באותו אימייל בשדה הנתונים שלהם אם הם אינם בכיתות של המורה.
+להסרת חשבון המורה ונתוני הכיתות שבבעלותו בלבד, הריצו את כל הקובץ `supabase/remove-teacher-9455988.sql` ב־SQL Editor. הקובץ אינו מוחק תלמידים שמשתמשים באותו אימייל בשדה הנתונים שלהם אם הם אינם בכיתות של המורה. אל תריצו אותו על נתוני דמו שבהם `9455988@gmail.com` משמש כמורה, אלא אם זו אכן מטרתכם.
 
 להרצה מקומית, לאחר התקנת Supabase CLI והרצת `supabase start`:
 

@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export type ReviewSubmission = {
   id: string;
+  studentId: string;
   assignmentId: string;
   classId: string;
   assignmentName: string;

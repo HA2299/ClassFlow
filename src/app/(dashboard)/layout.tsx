@@ -14,6 +14,14 @@ export default async function DashboardLayout({
 }) {
   const profile = await requireProfile();
   const notifications = await getMyNotifications();
+  const roleLabel =
+    profile.role === "teacher"
+      ? "מרחב מורה"
+      : profile.role === "student"
+        ? "מרחב תלמיד"
+        : profile.role === "parent"
+          ? "מרחב הורים"
+          : "מרחב ניהול";
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.1),transparent_30%),linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] text-slate-900">
       <header className="teacher-navbar sticky top-0 z-40 border-b border-white/80 bg-white/85 backdrop-blur-2xl">
@@ -36,7 +44,7 @@ export default async function DashboardLayout({
               <span className="flex size-7 items-center justify-center rounded-xl bg-cyan-100 text-xs font-black text-cyan-800">{profile.full_name.charAt(0)}</span>
               <div className="max-w-32 leading-tight">
                 <p className="truncate text-xs font-black text-slate-800">{profile.full_name}</p>
-                <p className="text-[10px] font-semibold text-slate-400">{profile.role === "teacher" ? "מרחב מורה" : "מרחב ניהול"}</p>
+                <p className="text-[10px] font-semibold text-slate-400">{roleLabel}</p>
               </div>
             </div>
             <form action={signOut}>

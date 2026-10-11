@@ -1,199 +1,265 @@
--- Local/demo data only. Run after creating the remaining Auth user through Supabase.
--- All records below are synthetic and intentionally use the two requested emails.
+-- Synthetic local/demo dataset.
+-- Destructive: clears the public tenant data before recreating it.
+-- Requires these confirmed Auth users: 9455988@gmail.com, hodaya2299@gmail.com,
+-- and parent.demo@classflow.demo. Never run against production data.
+
+do $$
+begin
+  if not exists (
+      select 1 from auth.users
+      where email = '9455988@gmail.com' and email_confirmed_at is not null
+    )
+    or not exists (
+      select 1 from auth.users
+      where email = 'hodaya2299@gmail.com' and email_confirmed_at is not null
+    )
+    or not exists (
+      select 1 from auth.users
+      where email = 'parent.demo@classflow.demo' and email_confirmed_at is not null
+    )
+  then
+    raise exception 'Create all three confirmed demo Auth users before running this seed';
+  end if;
+end $$;
 
 truncate table public.in_app_notifications, public.resource_library, public.ai_insights,
   public.risk_flags, public.grades, public.submissions, public.assignments,
   public.students, public.classes, public.profiles, public.institutions cascade;
 
-delete from public.grades
-where graded_by in (
-  select id from auth.users
-  where email in ('9455988@gmail.com', 'hodaya2299@gmail.com')
-);
-
 do $$
-begin
-  if (select count(*) from auth.users where email = 'hodaya2299@gmail.com') <> 1 then
-    raise exception 'Create hodaya2299@gmail.com in Supabase Authentication before running this seed';
-  end if;
-end $$;
-
-do $$
+<<seed_block>>
 declare
   institution_id uuid;
+  teacher_id uuid;
+  student_profile_id uuid;
+  parent_profile_id uuid;
+  demo_student_id uuid;
+  current_class_id uuid;
+  current_assignment_id uuid;
+  current_student_id uuid;
+  current_submission_id uuid;
+  class_index integer;
+  assignment_index integer;
+  student_index integer;
+  total_submissions integer := 0;
+  class_names text[] := array[
+    'י1 - מתמטיקה מתקדמת',
+    'י2 - מדעי המחשב',
+    'יא1 - אנגלית וכתיבה',
+    'י1 - פיזיקה יישומית',
+    'יא2 - חקר ויזמות'
+  ];
+  first_names text[] := array[
+    'אביגיל','איתי','אורית','אדם','אלה','בר','גיא','דניאל','הדר','זיו',
+    'טליה','יונתן','יעל','כרים','מאיה','נועם','עומר','עמית','רוני','שירה',
+    'תומר','תמר','ליאור','מיה','ניב','רותם','שחר','שני','אורי','הילה',
+    'אלון','נועה','איתן','עמליה','רועי'
+  ];
+  last_names text[] := array[
+    'אלון','ארז','בן דוד','ברק','גולן','כהן','דגן','הלוי','וייס','זמיר',
+    'חן','טל','יעקבי','לוי','מזרחי','נחום','סגל','עוז','פרץ','קציר',
+    'רון','שלו','שמאי','שפירא','שרון','תורגמן','אדרי','אשכנזי','פלד','קדם',
+    'שקד','רז','לביא','מור','אביטל'
+  ];
 begin
+  select id into teacher_id
+  from auth.users
+  where email = '9455988@gmail.com'
+  limit 1;
+
+  if teacher_id is null then
+    raise exception 'Create 9455988@gmail.com in Supabase Authentication before running this seed';
+  end if;
+
+  select id into student_profile_id
+  from auth.users
+  where email = 'hodaya2299@gmail.com'
+  limit 1;
+
+  if student_profile_id is null then
+    raise exception 'Create hodaya2299@gmail.com in Supabase Authentication before running this seed';
+  end if;
+
+  select id into parent_profile_id
+  from auth.users
+  where email = 'parent.demo@classflow.demo'
+  limit 1;
+
+  if parent_profile_id is null then
+    raise exception 'Create parent.demo@classflow.demo in Supabase Authentication before running this seed';
+  end if;
+
   insert into public.institutions (name)
   values ('תיכון אופק')
   returning id into institution_id;
 
-  insert into public.profiles (id, institution_id, role, full_name, email, identity_number)
+  insert into public.profiles (id, institution_id, role, full_name, email)
   select
-    id,
+    teacher_id,
     institution_id,
     'teacher'::public.user_role,
-    coalesce(raw_user_meta_data->>'full_name', split_part(email, '@', 1)),
-    email,
-    raw_user_meta_data->>'identity_number'
+    coalesce(raw_user_meta_data->>'full_name', 'מורה דמו'),
+    email
   from auth.users
-  where email = 'hodaya2299@gmail.com';
-end $$;
+  where id = teacher_id;
 
-do $$
-declare
-  institution_id uuid;
-  teacher_one uuid;
-  teacher_two uuid;
-  class_one uuid := '20000000-0000-0000-0000-000000000001';
-  class_two uuid := '20000000-0000-0000-0000-000000000002';
-  class_three uuid := '20000000-0000-0000-0000-000000000003';
-  class_four uuid := '20000000-0000-0000-0000-000000000004';
-  class_five uuid := '20000000-0000-0000-0000-000000000005';
-  student_id uuid;
-  assignment_id uuid;
-  submission_id uuid;
-  index_number integer;
-  class_id uuid;
-  assignment_index integer;
-  student_index integer;
-  names text[] := array[
-    'אביגיל אלון','איתי ארז','אורית בן דוד','אדם ברק','אלה גולן',
-    'בר כהן','גיא דגן','דניאל הלוי','הדר וייס','זיו זמיר',
-    'טליה חן','יונתן טל','יעל יעקבי','כרים לוי','מאיה מזרחי',
-    'נועם נחום','עומר סגל','עמית עוז','רוני פרץ','שירה קציר',
-    'תומר רון','תמר שלו','ליאור שמאי','מיה שפירא','ניב שרון',
-    'רותם תורגמן','שחר אדרי','שני אשכנזי','אורי פלד','הילה קדם'
-  ];
-begin
-  select id into teacher_two from auth.users where email = 'hodaya2299@gmail.com';
-  teacher_one := teacher_two;
-  select id into institution_id from public.institutions limit 1;
+  for class_index in 1..array_length(class_names, 1) loop
+    current_class_id := gen_random_uuid();
 
-  insert into public.classes (id, institution_id, name, teacher_id)
-  values
-    (class_one, institution_id, 'י1 - מתמטיקה מתקדמת', teacher_one),
-    (class_two, institution_id, 'י2 - מדעי המחשב', teacher_one),
-    (class_three, institution_id, 'יא1 - אנגלית וכתיבה', teacher_two),
-    (class_four, institution_id, 'י1 - פיזיקה יישומית', teacher_two),
-    (class_five, institution_id, 'יא2 - חקר ויזמות', teacher_one);
+    insert into public.classes (id, institution_id, name, teacher_id)
+    values (current_class_id, institution_id, class_names[class_index], teacher_id);
 
-  for index_number in 1..15 loop
-    class_id := case
-      when index_number <= 3 then class_one
-      when index_number <= 6 then class_two
-      when index_number <= 9 then class_three
-      when index_number <= 12 then class_four
-      else class_five
-    end;
-    student_id := ('30000000-0000-0000-0000-' || lpad(index_number::text, 12, '0'))::uuid;
-    insert into public.students (id, class_id, institution_id, name, email, identity_number, status)
-    values (
-      student_id,
-      class_id,
-      institution_id,
-      names[index_number],
-      case when index_number % 2 = 0 then '9455988@gmail.com' else 'hodaya2299@gmail.com' end,
-      '20' || lpad(index_number::text, 8, '0'),
-       case when index_number in (7, 14) then 'at_risk'::public.student_status
-         when index_number in (13, 15) then 'inactive'::public.student_status
-           else 'active'::public.student_status end
-    );
-  end loop;
+    for student_index in 1..35 loop
+      current_student_id := gen_random_uuid();
+      insert into public.students (id, class_id, institution_id, name, email, identity_number, status)
+      values (
+        current_student_id,
+        current_class_id,
+        institution_id,
+        first_names[student_index] || ' ' || last_names[student_index],
+        format('student.%s.%s@classflow.demo', class_index, student_index),
+        '20' || lpad(((class_index - 1) * 35 + student_index)::text, 8, '0'),
+        case
+          when student_index in (7, 19) then 'at_risk'::public.student_status
+          when student_index = 35 then 'inactive'::public.student_status
+          else 'active'::public.student_status
+        end
+      );
 
-  for assignment_index in 1..9 loop
-    class_id := case
-      when assignment_index <= 2 then class_one
-      when assignment_index <= 4 then class_two
-      when assignment_index <= 6 then class_three
-      when assignment_index = 7 then class_four
-      else class_five
-    end;
-    assignment_id := ('40000000-0000-0000-0000-' || lpad(assignment_index::text, 12, '0'))::uuid;
-    insert into public.assignments (id, class_id, institution_id, name, description, due_date, difficulty, type)
-    values (
-      assignment_id,
-      class_id,
-      institution_id,
-      case assignment_index % 4
-        when 1 then 'תרגול מסכם - פונקציות'
-        when 2 then 'פרויקט חקר קבוצתי'
-        when 3 then 'בוחן אמצע יחידה'
-        else 'משימת כתיבה ויישום' end || ' #' || assignment_index,
-      'משימה מעשית הכוללת הסבר, פתרון עצמאי ורפלקציה קצרה על תהליך הלמידה.',
-      now() + ((assignment_index - 5) || ' days')::interval,
-      case assignment_index % 3 when 1 then 'easy'::public.assignment_difficulty when 2 then 'medium'::public.assignment_difficulty else 'hard'::public.assignment_difficulty end,
-      case assignment_index % 4 when 1 then 'homework'::public.assignment_type when 2 then 'project'::public.assignment_type when 3 then 'quiz'::public.assignment_type else 'exam'::public.assignment_type end
-    );
-  end loop;
-
-  for assignment_index in 1..9 loop
-    assignment_id := ('40000000-0000-0000-0000-' || lpad(assignment_index::text, 12, '0'))::uuid;
-    for student_index in 1..15 loop
-      class_id := case
-        when student_index <= 3 then class_one
-        when student_index <= 6 then class_two
-        when student_index <= 9 then class_three
-        when student_index <= 12 then class_four
-        else class_five
-      end;
-      if class_id = (select a.class_id from public.assignments as a where a.id = assignment_id)
-        and (student_index - 1) % 3 < 2 then
-        student_id := ('30000000-0000-0000-0000-' || lpad(student_index::text, 12, '0'))::uuid;
-          submission_id := ('50000000-0000-0000-0000-' || lpad(((assignment_index - 1) * 15 + student_index)::text, 12, '0'))::uuid;
-        insert into public.submissions (id, assignment_id, student_id, institution_id, answer, submitted_at, status)
-        values (
-          submission_id,
-          assignment_id,
-          student_id,
-          institution_id,
-          'פתרון מלא עם שלבי עבודה, דוגמה יישומית ומסקנה אישית של התלמיד.',
-          case when student_index % 7 = 0 then null else now() - ((student_index % 9) || ' days')::interval end,
-          case when student_index % 7 = 0 then 'late'::public.submission_status
-               when student_index % 3 = 0 then 'graded'::public.submission_status
-               else 'submitted'::public.submission_status end
-        );
-        if assignment_index % 2 = 0 then
-          insert into public.grades (submission_id, student_id, assignment_id, institution_id, score, max_score, feedback, graded_by)
-          values (
-            submission_id, student_id, assignment_id, institution_id,
-            greatest(42, 96 - ((student_index * assignment_index) % 39)),
-            100,
-            'עבודה מסודרת. כדאי להרחיב את ההסבר בשלב האחרון ולבדוק את התוצאה שוב.',
-            case when class_id = class_one then teacher_one else teacher_two end
-          );
-        end if;
+      if class_index = 1 and student_index = 1 then
+        demo_student_id := current_student_id;
       end if;
     end loop;
+
+    for assignment_index in 1..12 loop
+      current_assignment_id := gen_random_uuid();
+
+      insert into public.assignments (id, class_id, institution_id, name, description, due_date, difficulty, type)
+      values (
+        current_assignment_id,
+        current_class_id,
+        institution_id,
+        case assignment_index % 4
+          when 1 then 'תרגול מסכם'
+          when 2 then 'פרויקט חקר'
+          when 3 then 'בוחן אמצע יחידה'
+          else 'משימת כתיבה ויישום'
+        end || ' #' || assignment_index,
+        'משימה מעשית הכוללת הסבר, פתרון עצמאי ורפלקציה קצרה על תהליך הלמידה.',
+        now() + (assignment_index || ' days')::interval,
+        case assignment_index % 3
+          when 1 then 'easy'::public.assignment_difficulty
+          when 2 then 'medium'::public.assignment_difficulty
+          else 'hard'::public.assignment_difficulty
+        end,
+        case assignment_index % 4
+          when 1 then 'homework'::public.assignment_type
+          when 2 then 'project'::public.assignment_type
+          when 3 then 'quiz'::public.assignment_type
+          else 'exam'::public.assignment_type
+        end
+      );
+
+      for student_index in 1..35 loop
+        if (student_index + assignment_index + class_index) % 5 <> 0 then
+          select s.id into current_student_id
+          from public.students s
+          where s.class_id = current_class_id
+          order by s.created_at, s.id
+          offset student_index - 1
+          limit 1;
+
+          current_submission_id := gen_random_uuid();
+          total_submissions := total_submissions + 1;
+
+          insert into public.submissions (id, assignment_id, student_id, institution_id, answer, submitted_at, status)
+          values (
+            current_submission_id,
+            current_assignment_id,
+            current_student_id,
+            institution_id,
+            'פתרון מלא עם שלבי עבודה, דוגמה יישומית ומסקנה אישית של התלמיד.',
+            now() - (((student_index + assignment_index) % 12) || ' days')::interval,
+            case
+              when (student_index + assignment_index) % 11 = 0 then 'late'::public.submission_status
+              when (student_index + assignment_index + class_index) % 3 <> 0 then 'graded'::public.submission_status
+              else 'submitted'::public.submission_status
+            end
+          );
+
+          if (student_index + assignment_index + class_index) % 3 <> 0 then
+            insert into public.grades (submission_id, student_id, assignment_id, institution_id, score, max_score, feedback, graded_by)
+            values (
+              current_submission_id,
+              current_student_id,
+              current_assignment_id,
+              institution_id,
+              greatest(42, 96 - ((student_index * assignment_index + class_index) % 39)),
+              100,
+              'עבודה מסודרת. כדאי להרחיב את ההסבר בשלב האחרון ולבדוק את התוצאה שוב.',
+              teacher_id
+            );
+          end if;
+        end if;
+      end loop;
+    end loop;
+
+    insert into public.resource_library (institution_id, teacher_id, class_id, title, description, type, tags, url)
+    values (
+      institution_id,
+      teacher_id,
+      current_class_id,
+      'חומר חזרה לכיתה',
+      'סיכום מסודר עם דוגמאות, תרגול וטיפים לקראת המשימות הקרובות.',
+      'summary',
+      array['חזרה', 'תרגול', class_names[class_index]],
+      'https://example.com/classflow/study'
+    );
+
+    insert into public.ai_insights (institution_id, class_id, title, summary, insight_type)
+    values (
+      institution_id,
+      current_class_id,
+      'מגמת פעילות בכיתה',
+      'רוב התלמידים פעילים ומגישים בקצב יציב. מומלץ להמשיך עם משוב קצר ורציף.',
+      'class_summary'
+    );
   end loop;
 
+  update public.students
+  set name = 'Hodaya', email = 'hodaya2299@gmail.com'
+  where id = seed_block.demo_student_id;
+
+  insert into public.profiles (id, institution_id, role, full_name, email, identity_number, linked_student_id)
+  values (
+    seed_block.student_profile_id,
+    seed_block.institution_id,
+    'student'::public.user_role,
+    'Hodaya',
+    (select email from auth.users where id = seed_block.student_profile_id),
+    (select identity_number from public.students where id = seed_block.demo_student_id),
+    seed_block.demo_student_id
+  );
+
+  insert into public.profiles (id, institution_id, role, full_name, email, linked_student_id)
+  values (
+    seed_block.parent_profile_id,
+    seed_block.institution_id,
+    'parent'::public.user_role,
+    'הורה דמו',
+    (select email from auth.users where id = seed_block.parent_profile_id),
+    seed_block.demo_student_id
+  );
+
   insert into public.risk_flags (student_id, class_id, institution_id, flag_type, severity, description)
-  values
-    ('30000000-0000-0000-0000-000000000007', class_three, institution_id, 'low_grades', 'high', 'ממוצע ציונים מתחת ל-60 בשתי משימות רצופות'),
-    ('30000000-0000-0000-0000-000000000014', class_five, institution_id, 'missing_submissions', 'medium', 'שתי הגשות חסרות במהלך השבוע האחרון'),
-    ('30000000-0000-0000-0000-000000000015', class_five, institution_id, 'no_activity', 'high', 'לא נרשמה פעילות במערכת במשך עשרה ימים'),
-    ('30000000-0000-0000-0000-000000000010', class_four, institution_id, 'low_grades', 'medium', 'נדרש חיזוק בתרגול העצמאי'),
-    ('30000000-0000-0000-0000-000000000004', class_two, institution_id, 'other', 'low', 'נדרש מעקב נוסף לאחר היעדרות');
-
-  insert into public.ai_insights (institution_id, class_id, student_id, title, summary, insight_type)
-  values
-    (institution_id, class_one, null, 'מגמת שיפור בכיתה', 'רוב התלמידים שיפרו את הדיוק בפתרון משוואות לאחר תרגול מודרך.', 'class_summary'),
-    (institution_id, class_three, '30000000-0000-0000-0000-000000000014', 'נדרשת התערבות אישית', 'מומלץ לקבוע פגישת השלמה ולפרק את הפרויקט לשלבי ביניים ברורים.', 'student_analysis'),
-    (institution_id, class_three, null, 'המלצה לשיעור הבא', 'תרגול קצר של כתיבה ביקורתית עשוי לחזק את המעבר בין טענה לראיה.', 'recommendation'),
-    (institution_id, class_two, '30000000-0000-0000-0000-000000000007', 'סיכון לימודי', 'נראית ירידה עקבית בציונים ובקצב ההגשות; כדאי להפעיל תוכנית תמיכה.', 'risk'),
-    (institution_id, class_four, null, 'דפוס למידה חיובי', 'התלמידים מגיבים היטב לתרגול קצר לפני משימה מורכבת.', 'class_summary');
-
-  insert into public.resource_library (institution_id, teacher_id, class_id, title, description, type, tags, url)
-  values
-    (institution_id, teacher_one, class_one, 'דף נוסחאות - אלגברה', 'סיכום מסודר של נוסחאות, דוגמאות וטיפים לבדיקת תשובה.', 'formula', array['אלגברה','חזרה','י1'], 'https://example.com/classflow/algebra'),
-    (institution_id, teacher_one, class_two, 'מצגת מבוא לפייתון', 'שיעור מבוא הכולל משתנים, תנאים, לולאות ותרגילי חימום.', 'presentation', array['Python','תכנות','י2'], 'https://example.com/classflow/python'),
-    (institution_id, teacher_two, class_three, 'מחוון כתיבה טיעונית', 'מחוון להערכת טענה, ראיות, מבנה וסגנון כתיבה.', 'summary', array['אנגלית','כתיבה','מחוון'], 'https://example.com/classflow/writing'),
-    (institution_id, teacher_two, null, 'קישורים לתרגול עצמאי', 'אוסף קישורים לתרגול קריאה, אוצר מילים והבנת הנקרא.', 'link', array['תרגול','קריאה'], 'https://example.com/classflow/reading'),
-    (institution_id, teacher_one, class_five, 'מדריך להצגת מיזם', 'מבנה להצגת בעיה, פתרון, קהל יעד ומדדי הצלחה.', 'notes', array['יזמות','פרזנטציה'], 'https://example.com/classflow/entrepreneurship');
+  select s.id, s.class_id, seed_block.institution_id, 'low_grades'::public.risk_flag_type, 'medium'::public.risk_severity, 'נדרש מעקב נוסף אחרי ציונים והגשות.'
+  from public.students s
+  where s.institution_id = seed_block.institution_id
+    and s.status = 'at_risk'::public.student_status;
 
   insert into public.in_app_notifications (institution_id, recipient_id, type, title, message, href)
   values
-    (institution_id, teacher_one, 'submission', 'הגשה חדשה התקבלה', 'אביגיל אלון הגישה את משימת פונקציות #1.', '/classes/' || class_one::text),
-    (institution_id, teacher_one, 'grade', 'נדרש מעקב אחר תלמיד', 'נוצרה התראת סיכון עבור התלמידה אביגיל אלון.', '/classes/' || class_one::text),
-    (institution_id, teacher_two, 'assignment', 'מועד הגשה מתקרב', 'משימת כתיבה ויישום #12 תיסגר בעוד יומיים.', '/assignments'),
-    (institution_id, teacher_two, 'resource', 'משאב חדש נוסף', 'מחוון כתיבה טיעונית זמין לתלמידי יא1.', '/teacher/resources'),
-    (institution_id, teacher_one, 'submission', 'הגשה ממתינה לבדיקה', 'הגשה חדשה ממתינה לבדיקה בכיתת חקר ויזמות.', '/classes/' || class_five::text);
+    (institution_id, teacher_id, 'submission', 'הגשות חדשות התקבלו', total_submissions || ' הגשות זמינות במרכז הבדיקה.', '/review'),
+    (institution_id, teacher_id, 'assignment', 'מאגר הנתונים מוכן', 'נוצרו 5 כיתות, 175 תלמידים ו-60 משימות לדמו.', '/classes'),
+    (institution_id, teacher_id, 'resource', 'חומרי עזר זמינים', 'נוסף חומר חזרה לכל כיתה.', '/teacher/resources');
 end $$;

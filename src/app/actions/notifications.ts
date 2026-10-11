@@ -335,7 +335,8 @@ export async function sendAssignmentNotifications(
 
 export async function sendMissingSubmissionReminders(
   classId: string,
-  assignmentId: string
+  assignmentId: string,
+  selectedStudentIds?: string[]
 ): Promise<{ sent: number; skipped: number; error?: string }> {
   const profile = await (await import("@/lib/auth/session")).getSessionProfile();
   if (!profile || (profile.role !== "teacher" && profile.role !== "institution_admin" && profile.role !== "system_admin")) {
@@ -359,10 +360,13 @@ export async function sendMissingSubmissionReminders(
       .map((submission) => submission.student_id)
   );
   const missingStudents = students.filter((student) => !submittedStudentIds.has(student.id));
-  if (missingStudents.length === 0) return { sent: 0, skipped: 0 };
+  const recipients = selectedStudentIds?.length
+    ? missingStudents.filter((student) => selectedStudentIds.includes(student.id))
+    : missingStudents;
+  if (recipients.length === 0) return { sent: 0, skipped: 0 };
 
   const hasBrevo = Boolean(process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL);
-  const recipientIds = await getStudentProfileIds(missingStudents.map((student) => student.id), profile.institution_id);
+  const recipientIds = await getStudentProfileIds(recipients.map((student) => student.id), profile.institution_id);
   await createInAppNotifications({
     institutionId: profile.institution_id,
     recipientIds,
@@ -372,9 +376,9 @@ export async function sendMissingSubmissionReminders(
     href: "/student/assignments",
   });
 
-  if (!hasBrevo) return { sent: 0, skipped: missingStudents.length };
+  if (!hasBrevo) return { sent: 0, skipped: recipients.length };
 
-  const results = await Promise.all(missingStudents.map(async (student) => {
+  const results = await Promise.all(recipients.map(async (student) => {
     const recipient = await resolveStudentRecipient(student);
     if (!recipient.email) return false;
     return sendEmail({
@@ -385,7 +389,35 @@ export async function sendMissingSubmissionReminders(
   }));
 
   const sent = results.filter(Boolean).length;
-  return { sent, skipped: missingStudents.length - sent };
+  return { sent, skipped: recipients.length - sent };
+}
+
+export async function sendGlobalMissingSubmissionReminders(): Promise<{ sent: number; students: number; error?: string }> {
+  const profile = await (await import("@/lib/auth/session")).getSessionProfile();
+  if (!profile || (profile.role !== "teacher" && profile.role !== "institution_admin" && profile.role !== "system_admin")) {
+    return { sent: 0, students: 0, error: "אין הרשאה" };
+  }
+
+  const assignments = await getActiveAssignmentsForTeacher(profile.id);
+  const results = await Promise.all(assignments.map(async (assignment) => {
+    const students = await getStudentsByClass(assignment.class_id);
+    const submissions = await getSubmissionsByAssignment(assignment.id);
+    const submittedIds = new Set(submissions.filter((submission) => Boolean(submission.answer.trim()) || (submission.attachment_urls?.length ?? 0) > 0).map((submission) => submission.student_id));
+    return { classId: assignment.class_id, assignmentId: assignment.id, students: students.filter((student) => !submittedIds.has(student.id)) };
+  }));
+  const uniqueStudents = new Map<string, typeof results[number]["students"][number]>();
+  results.forEach((result) => result.students.forEach((student) => uniqueStudents.set(student.id, student)));
+  const students = Array.from(uniqueStudents.values());
+  const recipientIds = await getStudentProfileIds(students.map((student) => student.id), profile.institution_id);
+  await createInAppNotifications({ institutionId: profile.institution_id, recipientIds, type: "assignment", title: "תזכורת להגשות", message: "יש מטלות שממתינות להגשה במערכת.", href: "/student/assignments" });
+  const hasBrevo = Boolean(process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL);
+  if (!hasBrevo) return { sent: 0, students: students.length };
+  const resultsSent = await Promise.all(students.map(async (student) => {
+    const recipient = await resolveStudentRecipient(student);
+    if (!recipient.email) return false;
+    return sendEmail({ to: recipient.email, subject: "תזכורת להגשות ב-ClassFlow", html: templateSubmissionReminder(recipient.name, "המטלות הקרובות שלך", "בהקדם") });
+  }));
+  return { sent: resultsSent.filter(Boolean).length, students: students.length };
 }
 
 // ---------------------------------------------------------

@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   getAssignmentById,
   getGradesBySubmissions,
-  getStudentsByIds,
 } from "@/lib/data/store";
 import { requireProfile } from "@/lib/auth/session";
 import {
@@ -10,17 +9,15 @@ import {
   getTeacherClassById,
   getClassStudents,
 } from "@/app/actions/auth";
-import { GradeSubmissionForm } from "@/components/classes/grade-submission-form";
-import { MissingSubmissionReminder } from "@/components/classes/missing-submission-reminder";
+import { AssignmentReviewWorkspace } from "@/components/classes/assignment-review-workspace";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowRight, CheckCircle2, ChevronDown, Clock3, FileText, GraduationCap, ListChecks, Users } from "lucide-react";
+import { Clock3, FileText, GraduationCap, Users, ArrowRight } from "lucide-react";
 
 export default async function AssignmentDetailPage({
   params,
@@ -61,12 +58,7 @@ export default async function AssignmentDetailPage({
     );
   }
 
-  const [grades, submissionStudents] = await Promise.all([
-    getGradesBySubmissions(submissions.map((submission) => submission.id)),
-    getStudentsByIds(submissions.map((submission) => submission.student_id)),
-  ]);
-  const gradeMap = new Map(grades.map((grade) => [grade.submission_id, grade]));
-  const studentMap = new Map([...students, ...submissionStudents].map((student) => [student.id, student]));
+  const grades = await getGradesBySubmissions(submissions.map((submission) => submission.id));
 
   const dueDate = new Date(assignment.due_date);
   const now = new Date();
@@ -78,8 +70,6 @@ export default async function AssignmentDetailPage({
     if (submission.status === "graded") gradedCount += 1;
   }
   const pendingCount = Math.max(0, students.length - submittedCount);
-  const ungradedCount = Math.max(0, submittedCount - gradedCount);
-  const submittedStudentIds = new Set(submissions.map((submission) => submission.student_id));
 
   const typeLabels = {
     homework: "שיעורי בית",
@@ -121,9 +111,7 @@ export default async function AssignmentDetailPage({
         {isOverdue && <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700">חלף המועד</span>}
       </div>
 
-      {/* Main content stays full-width so a short sidebar cannot compete with the submission queue. */}
-      <div className="space-y-4">
-          {/* Description */}
+        <div className="space-y-4">
           {assignment.description && (
             <Card className="surface-card bg-white/85 p-0">
               <CardHeader className="px-4 pb-1 pt-3 sm:px-5">
@@ -136,121 +124,7 @@ export default async function AssignmentDetailPage({
               </CardContent>
             </Card>
           )}
-
-          <Card className="border-0 bg-transparent p-0 shadow-none">
-            <CardHeader className="relative mb-5 rounded-[1.5rem] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-5">
-              <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
-                <div>
-                  <CardTitle className="text-xl font-black text-slate-950">מרכז הבדיקה</CardTitle>
-                  <CardDescription className="mt-1">עברו על ההגשות, תנו ציון והשאירו משוב במקום אחד.</CardDescription>
-                </div>
-                <span className="w-fit rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">{ungradedCount} ממתינות לבדיקה</span>
-              </div>
-              <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/80 p-2.5">
-                <div className="flex items-center justify-between gap-3 text-xs font-bold text-slate-600"><span>התקדמות בדיקה</span><span>{gradedCount}/{submittedCount} הגשות</span></div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-gradient-to-l from-emerald-500 to-cyan-500 transition-all" style={{ width: `${submittedCount > 0 ? Math.round((gradedCount / submittedCount) * 100) : 0}%` }} /></div>
-                <p className="mt-2 text-[11px] text-slate-500">{pendingCount > 0 ? `${pendingCount} תלמידים עדיין לא הגישו.` : "כל התלמידים הגישו את המשימה."}</p>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 px-0 pt-0">
-              {submissions.length > 0 ? (
-                submissions.map((submission) => {
-                  const student = studentMap.get(submission.student_id);
-                  const grade = gradeMap.get(submission.id);
-                  const statusLabel =
-                    submission.status === "graded"
-                      ? "מדורג"
-                      : submission.status === "late"
-                        ? "באיחור"
-                        : "הוגש";
-
-                  return (
-                    <details id={`submission-${submission.id}`} data-pending={submission.status !== "graded" ? "true" : "false"} key={submission.id} open={submission.status !== "graded"} className="submission-card group overflow-hidden rounded-[1.35rem] border border-slate-200/90 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.055)]">
-                      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-l from-slate-50/90 to-white px-4 py-3.5 transition hover:bg-cyan-50/30 sm:px-5">
-                        <div className="flex items-center gap-3">
-                          <span className="flex size-10 items-center justify-center rounded-xl bg-slate-950 text-base font-black text-cyan-300 shadow-sm">{(student?.name ?? "תלמיד").charAt(0)}</span>
-                          <div>
-                          <p className="font-black text-slate-900">{student?.name ?? "תלמיד"}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(submission.submitted_at || submission.created_at).toLocaleString("he-IL")}
-                          </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {grade && (
-                            <span className="flex items-baseline gap-1 rounded-2xl bg-emerald-100 px-3 py-1.5 text-emerald-800">
-                              <strong className="text-xl font-black">{grade.score}</strong><span className="text-xs font-bold">/{grade.max_score}</span>
-                            </span>
-                          )}
-                          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${submission.status === "graded" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
-                            {submission.status === "graded" ? <CheckCircle2 className="size-3.5" /> : <Clock3 className="size-3.5" />}
-                            {statusLabel}
-                          </span>
-                        </div>
-                        <span className="flex items-center gap-1 text-xs font-bold text-slate-400"><ListChecks className="size-3.5" /> <span className="hidden sm:inline">פתיחה לבדיקה</span><ChevronDown className="submission-chevron size-4" /></span>
-                      </summary>
-
-                      <div className="mx-4 mt-4 rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-3 sm:mx-5"><p className="mb-1.5 text-[10px] font-bold tracking-[0.18em] text-slate-400">תשובת התלמיד</p><p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{submission.answer || "לא נכתבה תשובה"}</p></div>
-
-                      {submission.attachment_urls && submission.attachment_urls.length > 0 && (
-                        <div className="mx-4 mt-3 rounded-2xl border border-dashed border-cyan-200 bg-cyan-50/50 p-3 sm:mx-5">
-                          <p className="text-[10px] font-bold tracking-wide text-cyan-700">
-                            קבצים מצורפים
-                          </p>
-                          <ul className="mt-2 space-y-2">
-                            {submission.attachment_urls.map((url, index) => (
-                              <li key={`${url}-${index}`}>
-                                <a
-                                  href={`/api/submissions/file?path=${encodeURIComponent(url)}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-2 text-sm text-primary underline underline-offset-2"
-                                >
-                                  <span className="flex size-7 items-center justify-center rounded-lg bg-white text-cyan-700"><FileText className="size-4" /></span>
-                                  <span>{submission.attachment_names?.[index] ?? `קובץ ${index + 1}`}</span>
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {grade && grade.feedback && (
-                        <div className="mt-3 rounded-lg border border-dashed border-border/80 bg-background/60 p-2.5">
-                          <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                            משוב
-                          </p>
-                          <p className="mt-1 text-sm text-foreground">{grade.feedback}</p>
-                        </div>
-                      )}
-
-                      <GradeSubmissionForm
-                        submissionId={submission.id}
-                        assignmentId={assignment.id}
-                        classId={params.id}
-                        defaultScore={grade?.score}
-                        defaultFeedback={grade?.feedback ?? undefined}
-                      />
-                    </details>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  אין הגשות להצגה כרגע.
-                </p>
-              )}
-              {pendingCount > 0 && (
-                <div className="rounded-[1.75rem] border border-dashed border-amber-300 bg-amber-50/70 p-5">
-                  <div className="flex items-start gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"><Clock3 className="size-5" /></span>
-                    <div><h3 className="font-black text-amber-950">תלמידים שעדיין לא הגישו</h3><p className="mt-1 text-sm leading-6 text-amber-900/70">{pendingCount} תלמידים אינם מופיעים ברשימת ההגשות. אפשר לעקוב אחריהם ולשלוח תזכורת מהכיתה.</p></div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">{students.filter((student) => !submittedStudentIds.has(student.id)).map((student) => <span key={student.id} className="rounded-full border border-amber-200 bg-white px-3 py-1.5 text-xs font-bold text-amber-900">{student.name}</span>)}</div>
-                  <MissingSubmissionReminder classId={params.id} assignmentId={assignment.id} count={pendingCount} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <AssignmentReviewWorkspace assignmentId={assignment.id} classId={params.id} submissions={submissions} students={students} grades={grades} />
       </div>
     </div>
   );
