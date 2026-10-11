@@ -31,7 +31,7 @@ export function DashboardNav({
   const [open, setOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const isTeacher = role === "teacher" || role === "institution_admin" || role === "system_admin";
-  const links = isTeacher ? teacherLinks : role === "student" ? studentLinks : [{ href: "/parent", label: "סקירה", icon: LayoutDashboard }];
+  const links = isTeacher ? teacherLinks : studentLinks;
   const isAdmin = role === "institution_admin" || role === "system_admin";
 
   const isActive = (href: string) => pathname === href || (href !== "/dashboard" && href !== "/student" && pathname.startsWith(`${href}/`));

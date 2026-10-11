@@ -119,7 +119,6 @@ begin
 					and s.id::text = (storage.foldername(storage.objects.name))[3]
 					and (
 						(p.role = 'student' and p.linked_student_id = s.id)
-						or (p.role = 'parent' and p.linked_student_id = s.id)
 						or (p.role = 'teacher' and a.class_id in (
 							select c.id from public.classes c where c.teacher_id = auth.uid()
 						))

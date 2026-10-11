@@ -9,10 +9,6 @@ export default async function HomePage() {
       redirect("/student");
     }
 
-    if (profile.role === "parent") {
-      redirect("/parent");
-    }
-
     if (profile.role === "institution_admin" || profile.role === "system_admin") {
       redirect("/admin");
     }

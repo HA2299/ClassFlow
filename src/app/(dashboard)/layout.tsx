@@ -19,16 +19,14 @@ export default async function DashboardLayout({
       ? "מרחב מורה"
       : profile.role === "student"
         ? "מרחב תלמיד"
-        : profile.role === "parent"
-          ? "מרחב הורים"
-          : "מרחב ניהול";
+        : "מרחב ניהול";
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.1),transparent_30%),linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] text-slate-900">
       <header className="teacher-navbar sticky top-0 z-40 border-b border-white/80 bg-white/85 backdrop-blur-2xl">
         <div className="relative mx-auto flex min-h-[4.25rem] max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3 sm:gap-6">
             <Link
-              href={profile.role === "student" ? "/student" : profile.role === "parent" ? "/parent" : "/dashboard"}
+              href={profile.role === "student" ? "/student" : "/dashboard"}
               className="group inline-flex shrink-0 items-center gap-2.5 text-xl font-black tracking-tight text-slate-950"
             >
               <span className="flex size-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-cyan-300 shadow-lg shadow-slate-900/20 transition duration-200 group-hover:-rotate-3 group-hover:bg-cyan-700 group-hover:text-white">

@@ -3,7 +3,6 @@
 create type public.user_role as enum (
   'teacher',
   'student',
-  'parent',
   'institution_admin',
   'system_admin'
 );

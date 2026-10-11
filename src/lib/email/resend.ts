@@ -495,11 +495,3 @@ export function templateGradePublished({
 </body>
 </html>`;
 }
-
-export function templateParentUpdate(
-  parentName: string,
-  studentName: string,
-  summary: string
-): string {
-  return `<p>שלום ${parentName},</p><p>עדכון על ${studentName}: ${summary}</p>`;
-}

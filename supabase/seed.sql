@@ -1,7 +1,6 @@
 -- Synthetic local/demo dataset.
 -- Destructive: clears the public tenant data before recreating it.
--- Requires these confirmed Auth users: 9455988@gmail.com, hodaya2299@gmail.com,
--- and parent.demo@classflow.demo. Never run against production data.
+-- Requires confirmed teacher and student Auth users. Never run against production data.
 
 do $$
 begin
@@ -13,12 +12,8 @@ begin
       select 1 from auth.users
       where email = 'hodaya2299@gmail.com' and email_confirmed_at is not null
     )
-    or not exists (
-      select 1 from auth.users
-      where email = 'parent.demo@classflow.demo' and email_confirmed_at is not null
-    )
   then
-    raise exception 'Create all three confirmed demo Auth users before running this seed';
+    raise exception 'Create both confirmed demo Auth users before running this seed';
   end if;
 end $$;
 
@@ -32,7 +27,6 @@ declare
   institution_id uuid;
   teacher_id uuid;
   student_profile_id uuid;
-  parent_profile_id uuid;
   demo_student_id uuid;
   current_class_id uuid;
   current_assignment_id uuid;
@@ -78,15 +72,6 @@ begin
 
   if student_profile_id is null then
     raise exception 'Create hodaya2299@gmail.com in Supabase Authentication before running this seed';
-  end if;
-
-  select id into parent_profile_id
-  from auth.users
-  where email = 'parent.demo@classflow.demo'
-  limit 1;
-
-  if parent_profile_id is null then
-    raise exception 'Create parent.demo@classflow.demo in Supabase Authentication before running this seed';
   end if;
 
   insert into public.institutions (name)
@@ -238,16 +223,6 @@ begin
     'Hodaya',
     (select email from auth.users where id = seed_block.student_profile_id),
     (select identity_number from public.students where id = seed_block.demo_student_id),
-    seed_block.demo_student_id
-  );
-
-  insert into public.profiles (id, institution_id, role, full_name, email, linked_student_id)
-  values (
-    seed_block.parent_profile_id,
-    seed_block.institution_id,
-    'parent'::public.user_role,
-    'הורה דמו',
-    (select email from auth.users where id = seed_block.parent_profile_id),
     seed_block.demo_student_id
   );
 

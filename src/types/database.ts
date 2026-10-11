@@ -1,7 +1,6 @@
 export type UserRole =
   | "teacher"
   | "student"
-  | "parent"
   | "institution_admin"
   | "system_admin";
 

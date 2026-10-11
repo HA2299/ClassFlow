@@ -43,7 +43,6 @@ export async function GET(request: NextRequest) {
   const classItem = await getClassById(assignment.class_id);
   const canAccess =
     (profile.role === "student" && profile.linked_student_id === studentId) ||
-    (profile.role === "parent" && profile.linked_student_id === studentId) ||
     ((profile.role === "teacher" || profile.role === "institution_admin" || profile.role === "system_admin") &&
       (profile.role !== "teacher" || classItem?.teacher_id === profile.id));
 

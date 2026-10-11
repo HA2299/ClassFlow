@@ -34,9 +34,6 @@ export async function requireTeacher(): Promise<Profile> {
     if (profile.role === "student") {
       redirect("/student");
     }
-    if (profile.role === "parent") {
-      redirect("/parent");
-    }
     redirect("/dashboard");
   }
 
@@ -47,22 +44,6 @@ export async function requireStudent(): Promise<Profile> {
   const profile = await requireProfile();
 
   if (profile.role !== "student") {
-    if (profile.role === "parent") {
-      redirect("/parent");
-    }
-    redirect("/dashboard");
-  }
-
-  return profile;
-}
-
-export async function requireParent(): Promise<Profile> {
-  const profile = await requireProfile();
-
-  if (profile.role !== "parent") {
-    if (profile.role === "student") {
-      redirect("/student");
-    }
     redirect("/dashboard");
   }
 
@@ -78,9 +59,6 @@ export async function requireAdmin(): Promise<Profile> {
   ) {
     if (profile.role === "student") {
       redirect("/student");
-    }
-    if (profile.role === "parent") {
-      redirect("/parent");
     }
     redirect("/dashboard");
   }

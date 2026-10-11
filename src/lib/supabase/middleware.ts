@@ -38,7 +38,6 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/classes") ||
     request.nextUrl.pathname.startsWith("/assignments") ||
     request.nextUrl.pathname.startsWith("/student") ||
-    request.nextUrl.pathname.startsWith("/parent") ||
     request.nextUrl.pathname.startsWith("/admin");
 
   if (!user && isProtectedRoute) {

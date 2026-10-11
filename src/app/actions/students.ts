@@ -174,9 +174,6 @@ export async function getLinkedStudentRecord(profileId: string) {
   const { findProfileById } = await import("@/lib/data/store");
   const profile = await findProfileById(profileId);
   if (!profile) return null;
-  if (profile.role === "parent") {
-    return profile.linked_student_id ? getStudentById(profile.linked_student_id) : null;
-  }
   if (profile.role !== "student") return null;
   return ensureStudentRecordForProfile(profile);
 }
