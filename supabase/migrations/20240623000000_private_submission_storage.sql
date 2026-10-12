@@ -55,11 +55,17 @@ as $$
 $$;
 
 drop policy if exists "students_select" on public.students;
+drop policy if exists "students_select_scoped" on public.students;
 drop policy if exists "assignments_select" on public.assignments;
+drop policy if exists "assignments_select_scoped" on public.assignments;
 drop policy if exists "submissions_select" on public.submissions;
+drop policy if exists "submissions_select_scoped" on public.submissions;
 drop policy if exists "grades_select" on public.grades;
+drop policy if exists "grades_select_scoped" on public.grades;
 drop policy if exists "risk_flags_select" on public.risk_flags;
+drop policy if exists "risk_flags_select_scoped" on public.risk_flags;
 drop policy if exists "ai_insights_select" on public.ai_insights;
+drop policy if exists "ai_insights_select_scoped" on public.ai_insights;
 
 create policy "students_select_scoped" on public.students for select
 	using (public.can_access_student(id));

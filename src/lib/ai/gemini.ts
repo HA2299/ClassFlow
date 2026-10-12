@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 
 const OPENROUTER_MODEL = "openrouter/free";
 
@@ -16,7 +16,7 @@ export function getOpenRouterErrorMessage(error: unknown) {
 }
 
 export async function generateOpenRouterText(prompt: string, options?: { temperature?: number; maxOutputTokens?: number }) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) return null;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -46,9 +46,11 @@ export async function generateOpenRouterText(prompt: string, options?: { tempera
     }
     throw new Error(`${reason} (HTTP ${response.status})`);
   }
+
   const data = (await response.json()) as {
     choices?: Array<{ message?: { content?: string | Array<{ text?: string }> } }>;
   };
+
   const content = data.choices?.[0]?.message?.content;
   if (typeof content === "string") return content.trim() || null;
   return content?.map((part) => part.text ?? "").join("").trim() || null;

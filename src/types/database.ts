@@ -21,6 +21,18 @@ export type InsightType =
   | "recommendation"
   | "risk";
 export type NotificationType = "assignment" | "grade" | "submission" | "resource";
+export type CalendarEventType =
+  | "exam"
+  | "quiz"
+  | "makeup_exam"
+  | "project"
+  | "submission_deadline"
+  | "special_lesson"
+  | "class_activity"
+  | "school_event"
+  | "other";
+export type CalendarEventStatus = "draft" | "published" | "cancelled";
+export type CalendarEventSyncStatus = "disabled" | "pending" | "synced" | "error";
 
 export type Json =
   | string
@@ -334,6 +346,126 @@ export interface Database {
         };
         Relationships: [];
       };
+      calendar_events: {
+        Row: {
+          id: string;
+          institution_id: string;
+          created_by: string;
+          title: string;
+          description: string | null;
+          event_type: CalendarEventType;
+          subject: string | null;
+          location: string | null;
+          start_at: string;
+          end_at: string | null;
+          all_day: boolean;
+          status: CalendarEventStatus;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+          linked_assignment_id: string | null;
+          external_provider: string | null;
+          external_calendar_id: string | null;
+          external_event_id: string | null;
+          sync_status: CalendarEventSyncStatus;
+          last_synced_at: string | null;
+          reminder_at: string | null;
+          notify_students: boolean;
+          notify_teacher: boolean;
+          material: string | null;
+          topics: string[] | null;
+          duration_minutes: number | null;
+          max_score: number | null;
+          preparation_links: string[] | null;
+          special_notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          institution_id: string;
+          created_by: string;
+          title: string;
+          description?: string | null;
+          event_type?: CalendarEventType;
+          subject?: string | null;
+          location?: string | null;
+          start_at: string;
+          end_at?: string | null;
+          all_day?: boolean;
+          status?: CalendarEventStatus;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          linked_assignment_id?: string | null;
+          external_provider?: string | null;
+          external_calendar_id?: string | null;
+          external_event_id?: string | null;
+          sync_status?: CalendarEventSyncStatus;
+          last_synced_at?: string | null;
+          reminder_at?: string | null;
+          notify_students?: boolean;
+          notify_teacher?: boolean;
+          material?: string | null;
+          topics?: string[] | null;
+          duration_minutes?: number | null;
+          max_score?: number | null;
+          preparation_links?: string[] | null;
+          special_notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          institution_id?: string;
+          created_by?: string;
+          title?: string;
+          description?: string | null;
+          event_type?: CalendarEventType;
+          subject?: string | null;
+          location?: string | null;
+          start_at?: string;
+          end_at?: string | null;
+          all_day?: boolean;
+          status?: CalendarEventStatus;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          linked_assignment_id?: string | null;
+          external_provider?: string | null;
+          external_calendar_id?: string | null;
+          external_event_id?: string | null;
+          sync_status?: CalendarEventSyncStatus;
+          last_synced_at?: string | null;
+          reminder_at?: string | null;
+          notify_students?: boolean;
+          notify_teacher?: boolean;
+          material?: string | null;
+          topics?: string[] | null;
+          duration_minutes?: number | null;
+          max_score?: number | null;
+          preparation_links?: string[] | null;
+          special_notes?: string | null;
+        };
+        Relationships: [];
+      };
+      calendar_event_class_links: {
+        Row: {
+          id: string;
+          event_id: string;
+          class_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          class_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          class_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       grades: {
         Row: {
           id: string;
@@ -469,6 +601,9 @@ export interface Database {
       risk_flag_type: RiskFlagType;
       risk_severity: RiskSeverity;
       insight_type: InsightType;
+      calendar_event_type: CalendarEventType;
+      calendar_event_status: CalendarEventStatus;
+      calendar_event_sync_status: CalendarEventSyncStatus;
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -484,6 +619,8 @@ export type Institution = Database["public"]["Tables"]["institutions"]["Row"];
 export type Student = Database["public"]["Tables"]["students"]["Row"];
 export type Assignment = Database["public"]["Tables"]["assignments"]["Row"];
 export type ResourceLibraryItem = Database["public"]["Tables"]["resource_library"]["Row"];
+export type CalendarEvent = Database["public"]["Tables"]["calendar_events"]["Row"];
+export type CalendarEventClassLink = Database["public"]["Tables"]["calendar_event_class_links"]["Row"];
 export type Submission = Database["public"]["Tables"]["submissions"]["Row"];
 export type Grade = Database["public"]["Tables"]["grades"]["Row"];
 export type RiskFlag = Database["public"]["Tables"]["risk_flags"]["Row"];

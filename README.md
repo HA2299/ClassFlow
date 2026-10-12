@@ -11,7 +11,7 @@ npm run dev
 
 ## תצורה
 
-הגדר משתני סביבה אמיתיים עבור Supabase ו-AI:
+הגדר משתני סביבה אמיתיים עבור Supabase, AI ו-Google Calendar:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=...
@@ -22,7 +22,17 @@ NEXT_PUBLIC_SITE_URL=...
 BREVO_API_KEY=...
 BREVO_FROM_EMAIL=...
 BREVO_FROM_NAME=ClassFlow
+GOOGLE_CALENDAR_ENABLED=true
+GOOGLE_CALENDAR_ID=primary
+GOOGLE_CALENDAR_CREDENTIALS_JSON={"type":"service_account",...}
+# או במקום JSON:
+# GOOGLE_CLIENT_EMAIL=...
+# GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
+
+### Google Calendar API — שלב א'
+
+המערכת כוללת אינטגרציה ראשונית ל-Google Calendar, שמנסה לסנכרן אירועים לוח השנה ל-Google Calendar אם מוגדרות credenials מתאימות. זהו שלב א' אופציונלי: אם לא מוגדר, האירוע נשמר מקומית ב-Supabase ולא קורס את תהליך השמירה.
 
 ## תכונות
 

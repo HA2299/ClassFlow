@@ -6,6 +6,8 @@ where p.id = u.id
   and p.role::text = 'parent';
 
 drop policy if exists "submission_files_select_authorized" on storage.objects;
+drop policy if exists "submission_files_insert_student" on storage.objects;
+drop policy if exists "submission_files_delete_authorized" on storage.objects;
 
 do $$
 begin
